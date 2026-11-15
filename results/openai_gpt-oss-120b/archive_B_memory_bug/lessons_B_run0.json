@@ -1,0 +1,67 @@
+[
+  {
+    "text": "Always verify that the edge selector actually returns edges\u2014use `.edges().val().objects` or a visual check before calling `.fillet()`, ensuring the selection isn\u2019t empty or a non\u2011edge type.",
+    "spec": "bracket_04",
+    "family": "bracket"
+  },
+  {
+    "text": "Always invoke the checker with a `run_and_check` call that includes a `code` argument containing your CadQuery script.",
+    "spec": "enclosure_03",
+    "family": "enclosure"
+  },
+  {
+    "text": "Always include the required `code` argument in a `run_and_check` call when submitting CadQuery scripts for automated verification.",
+    "spec": "flange_05",
+    "family": "flange"
+  },
+  {
+    "text": "Always use consistent indentation (e.g., four spaces per level) and never mix tabs with spaces, ensuring each block starts at the correct column to prevent Python syntax errors in CadQuery scripts.",
+    "spec": "flange_04",
+    "family": "flange"
+  },
+  {
+    "text": "Verify method signatures in the CadQuery API and use only the documented arguments\u2014avoid passing unsupported keywords such as `centered` to functions like `extrude()`.",
+    "spec": "bracket_06",
+    "family": "bracket"
+  },
+  {
+    "text": "Always write and test small code blocks incrementally, ensuring every parenthesis, bracket, and comma is correctly paired before adding more commands.",
+    "spec": "bracket_01",
+    "family": "bracket"
+  },
+  {
+    "text": "Always enclose your CadQuery script in a `run_and_check` call that includes the `code` argument containing the full script.",
+    "spec": "bracket_08",
+    "family": "bracket"
+  },
+  {
+    "text": "Define all hole positions and create corresponding cutout sketches before performing the subtraction, then inspect the model for each expected hole to ensure none are omitted.",
+    "spec": "plate_07",
+    "family": "plate"
+  },
+  {
+    "text": "Always position holes relative to the part\u2019s origin (center) using symmetric offsets instead of hard\u2011coding absolute coordinates.",
+    "spec": "plate_10",
+    "family": "plate"
+  },
+  {
+    "text": "Import and use Python\u2019s standard `math` module (or `import cadquery as cq; from math import ...`) for trigonometric functions instead of referencing a non\u2011existent `cadquery.math` attribute.",
+    "spec": "flange_01",
+    "family": "flange"
+  },
+  {
+    "text": "Always define hole locations with precise, parametric coordinates rather than sketch approximations to ensure exact positioning.",
+    "spec": "plate_01",
+    "family": "plate"
+  },
+  {
+    "text": "Always start a CadQuery script by assigning the initial solid to a variable (e.g., `result = Workplane(...).extrude(...)`) before chaining further operations.",
+    "spec": "plate_06",
+    "family": "plate"
+  },
+  {
+    "text": "Always include a `run_and_check` call that supplies your CadQuery script via the `code` argument when submitting a modeling solution.",
+    "spec": "bracket_03",
+    "family": "bracket"
+  }
+]
