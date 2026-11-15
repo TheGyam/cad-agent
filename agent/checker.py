@@ -29,9 +29,10 @@ HOLE_DEPTH_TOL = 0.1  # mm
 THICKNESS_TOL = 0.05  # mm
 SHAPE_TOL = 0.001  # fraction of the reference volume that may differ from it (booleans are exact)
 
-# Every failure falls in exactly one of these; the runner produces the first three.
+# Every failure falls in one of these. The loop reports no_code, the runner the
+# next three, the checker the rest.
 CATEGORIES = (
-    "syntax_error", "runtime_error", "timeout", "invalid_solid", "wrong_dimension",
+    "no_code", "syntax_error", "runtime_error", "timeout", "invalid_solid", "wrong_dimension",
     "volume", "hole_count", "hole_diameter", "hole_position", "hole_depth", "wrong_face",
     "wall_thickness", "shape_mismatch",
 )
