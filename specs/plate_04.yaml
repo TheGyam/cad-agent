@@ -1,0 +1,25 @@
+id: plate_04
+family: plate
+difficulty: medium
+text: >
+  Plate 90 mm (X) by 60 mm (Y), 6 mm thick (Z). The four corners seen from
+  above are chamfered 5 mm x 45 degrees, that is, the four vertical edges are
+  chamfered. Four 5.5 mm diameter through holes along Z, with centres 12 mm from
+  both adjacent edges.
+constraints:
+  bbox: [90, 60, 6]
+  holes:
+    - {d: 5.5, depth: 6, axis: z, at: [[12, 12], [78, 12], [12, 48], [78, 48]]}
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(90, 60, 6)
+      .edges("|Z").chamfer(5)
+      .faces(">Z").workplane()
+      .rect(66, 36, forConstruction=True).vertices()
+      .hole(5.5)
+  )
+broken:
+  - {expect: shape_mismatch, replace: ['chamfer(5)', 'chamfer(2)']}
+  - {expect: hole_position, replace: ['rect(66, 36', 'rect(66, 40']}

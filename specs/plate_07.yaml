@@ -1,0 +1,27 @@
+id: plate_07
+family: plate
+difficulty: medium
+text: >
+  Plate 120 mm (X) by 70 mm (Y), 8 mm thick (Z). One 25 mm diameter through
+  hole along Z at the centre. Four 6.6 mm diameter through holes along Z on the
+  corners of a 100 mm (X) by 50 mm (Y) rectangle centred on the plate.
+constraints:
+  bbox: [120, 70, 8]
+  holes:
+    - {d: 25, depth: 8, axis: z, at: [[60, 35]]}
+    - {d: 6.6, depth: 8, axis: z, at: [[10, 10], [110, 10], [10, 60], [110, 60]]}
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(120, 70, 8)
+      .faces(">Z").workplane()
+      .hole(25)
+      .faces(">Z").workplane()  # hole() leaves the old plane behind; select the face again
+      .rect(100, 50, forConstruction=True).vertices()
+      .hole(6.6)
+  )
+broken:
+  - {expect: hole_depth, replace: ['    .faces(">Z").workplane()  # hole() leaves the old plane behind; select the face again', '']}
+  - {expect: hole_position, replace: ['rect(100, 50', 'rect(90, 50']}
+  - {expect: hole_diameter, replace: ['hole(25)', 'hole(24)']}

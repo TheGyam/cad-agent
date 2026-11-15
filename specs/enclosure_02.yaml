@@ -1,0 +1,22 @@
+id: enclosure_02
+family: enclosure
+difficulty: easy
+text: >
+  Open-top box, outside 100 mm (X) by 70 mm (Y) by 40 mm high (Z), with walls
+  and floor 3 mm thick. One 10 mm diameter cable hole along X goes through the
+  wall at the maximum-X end, centred across the width (Y) and 20 mm above the
+  bottom face.
+constraints:
+  bbox: [100, 70, 40]
+  thickness_min: 3
+  holes:
+    - {d: 10, depth: 3, axis: x, at: [[35, 20]]}
+reference: |
+  import cadquery as cq
+
+  box = cq.Workplane("XY").box(100, 70, 40, centered=(True, True, False)).faces(">Z").shell(-3)
+  hole = cq.Workplane("YZ", origin=(50, 0, 0)).center(0, 20).circle(5).extrude(4, both=True)
+  result = box.cut(hole)
+broken:
+  - {expect: wrong_face, replace: ['cq.Workplane("YZ", origin=(50, 0, 0))', 'cq.Workplane("XZ", origin=(0, 35, 0))']}
+  - {expect: hole_diameter, replace: ['circle(5)', 'circle(4.5)']}

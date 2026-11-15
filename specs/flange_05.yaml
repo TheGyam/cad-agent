@@ -1,0 +1,28 @@
+id: flange_05
+family: flange
+difficulty: hard
+text: >
+  Hub flange with its axis along Z. A disk 160 mm in diameter and 14 mm thick
+  sits on the XY plane; a round hub 80 mm in diameter rises 25 mm above the top
+  of the disk, giving an overall height of 39 mm. A 50 mm diameter bore runs
+  through the disk and the hub, and the bore's edge at the top of the hub is
+  chamfered 3 mm x 45 degrees. Eight 14 mm diameter bolt holes along Z through
+  the disk, equally spaced on a 125 mm diameter bolt circle, the first one
+  22.5 degrees from +X, counting towards +Y.
+constraints:
+  bbox: [160, 160, 39]
+  holes:
+    - {d: 50, depth: 36, axis: z, at: [[80, 80]]}
+    - {d: 14, depth: 14, axis: z, circle: {center: [80, 80], r: 62.5, n: 8, start: 22.5}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(80).extrude(14)
+  hub = cq.Workplane("XY").workplane(offset=14).circle(40).extrude(25)
+  bore = cq.Workplane("XY").circle(25).extrude(39)
+  bolts = cq.Workplane("XY").polarArray(62.5, 22.5, 360, 8).circle(7).extrude(14)
+  flange = disk.union(hub).cut(bore).cut(bolts)
+  result = flange.faces(">Z").edges(cq.selectors.RadiusNthSelector(0)).chamfer(3)
+broken:
+  - {expect: hole_depth, replace: ['.faces(">Z").edges(cq.selectors.RadiusNthSelector(0)).chamfer(3)', '']}
+  - {expect: hole_position, replace: ['polarArray(62.5, 22.5,', 'polarArray(62.5, 0,']}

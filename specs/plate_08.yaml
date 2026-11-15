@@ -1,0 +1,33 @@
+id: plate_08
+family: plate
+difficulty: hard
+text: >
+  Mounting plate 160 mm (X) by 100 mm (Y), 10 mm thick (Z). The top face has a
+  rectangular pocket 100 mm (X) by 60 mm (Y) and 4 mm deep, centred, with sharp
+  corners, leaving a 6 mm thick floor. Four 5 mm diameter through holes along Z
+  pass through the pocket floor on the corners of an 80 mm (X) by 40 mm (Y)
+  rectangle centred on the plate. Four 8.5 mm diameter through holes along Z sit
+  near the plate corners, with centres 12 mm from both adjacent edges.
+constraints:
+  bbox: [160, 100, 10]
+  thickness_min: 6
+  holes:
+    - {d: 5, depth: 6, axis: z, at: [[40, 30], [120, 30], [40, 70], [120, 70]]}
+    - {d: 8.5, depth: 10, axis: z, at: [[12, 12], [148, 12], [12, 88], [148, 88]]}
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(160, 100, 10)
+      .faces(">Z").workplane()
+      .rect(100, 60).cutBlind(-4)
+      .faces(">Z").workplane()
+      .rect(80, 40, forConstruction=True).vertices()
+      .hole(5)
+      .faces(">Z").workplane()
+      .rect(136, 76, forConstruction=True).vertices()
+      .hole(8.5)
+  )
+broken:
+  - {expect: wall_thickness, replace: ['cutBlind(-4)', 'cutBlind(-7)']}
+  - {expect: hole_position, replace: ['rect(80, 40', 'rect(80, 44']}

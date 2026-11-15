@@ -1,0 +1,28 @@
+id: bracket_08
+family: bracket
+difficulty: hard
+text: >
+  L-bracket of 5 mm plate, 40 mm wide (Y). The horizontal leg lies on the XY
+  plane and is 80 mm long in X. The vertical leg rises along +Z at the
+  minimum-X end to an overall height of 60 mm, its outer face flush with that
+  end. The vertical leg has a through slot along X with fully rounded ends,
+  30 mm long overall and 8 mm wide, its long axis vertical, centred across the
+  width, with its centre 35 mm above the bottom face. Two 8 mm holes along Z
+  through the horizontal leg, at 40 mm and 65 mm from the minimum-X end, centred
+  across the width.
+constraints:
+  bbox: [80, 40, 60]
+  thickness_min: 5
+  holes:
+    - {d: 8, depth: 5, axis: z, at: [[40, 20], [65, 20]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(80, 40, 5, centered=False)
+  upright = cq.Workplane("XY").box(5, 40, 60, centered=False)
+  slot = cq.Workplane("YZ").center(20, 35).slot2D(30, 8, 90).extrude(5)
+  holes = cq.Workplane("XY").pushPoints([(40, 20), (65, 20)]).circle(4).extrude(5)
+  result = base.union(upright).cut(slot).cut(holes)
+broken:
+  - {expect: shape_mismatch, replace: ['slot2D(30, 8, 90)', 'slot2D(30, 8, 0)']}
+  - {expect: hole_position, replace: ['(65, 20)', '(60, 20)']}

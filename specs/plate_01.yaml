@@ -1,0 +1,23 @@
+id: plate_01
+family: plate
+difficulty: easy
+text: >
+  Rectangular plate 80 mm long (X), 50 mm wide (Y) and 6 mm thick (Z).
+  Four 5 mm diameter through holes along Z, one near each corner, with centres
+  10 mm from both adjacent edges.
+constraints:
+  bbox: [80, 50, 6]
+  holes:
+    - {d: 5, depth: 6, axis: z, at: [[10, 10], [70, 10], [10, 40], [70, 40]]}
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(80, 50, 6)
+      .faces(">Z").workplane()
+      .rect(60, 30, forConstruction=True).vertices()
+      .hole(5)
+  )
+broken:
+  - {expect: hole_position, replace: ['rect(60, 30', 'rect(56, 30']}
+  - {expect: hole_diameter, replace: ['hole(5)', 'hole(4.5)']}

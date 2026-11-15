@@ -1,0 +1,30 @@
+id: plate_10
+family: plate
+difficulty: hard
+text: >
+  Plate 140 mm (X) by 90 mm (Y), 8 mm thick (Z), with the four outer edges of
+  the top face chamfered 1 mm x 45 degrees. A grid of twelve 6 mm diameter
+  through holes along Z: 4 columns along X at a 30 mm pitch and 3 rows along Y at
+  a 25 mm pitch, the grid centred on the plate.
+constraints:
+  bbox: [140, 90, 8]
+  holes:
+    - d: 6
+      depth: 8
+      axis: z
+      at: [[25, 20], [55, 20], [85, 20], [115, 20],
+           [25, 45], [55, 45], [85, 45], [115, 45],
+           [25, 70], [55, 70], [85, 70], [115, 70]]
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(140, 90, 8)
+      .faces(">Z").edges().chamfer(1)
+      .faces(">Z").workplane()
+      .rarray(30, 25, 4, 3)
+      .hole(6)
+  )
+broken:
+  - {expect: hole_position, replace: ['rarray(30, 25', 'rarray(28, 25']}
+  - {expect: hole_count, replace: ['rarray(30, 25, 4, 3)', 'rarray(30, 25, 4, 2)']}

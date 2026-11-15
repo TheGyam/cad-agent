@@ -1,0 +1,35 @@
+id: enclosure_05
+family: enclosure
+difficulty: hard
+text: >
+  Open-top box with rounded corners, outside 140 mm (X) by 90 mm (Y) by 45 mm
+  high (Z). The four vertical outside edges are rounded to a 5 mm radius. Walls
+  and floor are 2.5 mm thick and the walls follow the rounded corners, so the
+  inside corners have a 2.5 mm radius. Four round mounting bosses stand on the
+  inside of the floor: 9 mm outside diameter and 12 mm tall above the top of the
+  floor, with centres 15 mm from both adjacent outside walls. Each boss has a
+  3.4 mm diameter blind hole along Z, 10 mm deep from the top of the boss. One
+  12 mm diameter hole along X goes through the wall at the maximum-X end,
+  centred across the width (Y) and 25 mm above the bottom face.
+constraints:
+  bbox: [140, 90, 45]
+  thickness_min: 2.5
+  holes:
+    - {d: 3.4, depth: 10, axis: z, at: [[15, 15], [125, 15], [15, 75], [125, 75]]}
+    - {d: 12, depth: 2.5, axis: x, at: [[45, 25]]}
+reference: |
+  import cadquery as cq
+
+  box = (
+      cq.Workplane("XY").box(140, 90, 45, centered=(True, True, False))
+      .edges("|Z").fillet(5)
+      .faces(">Z").shell(-2.5)
+  )
+  pts = [(-55, -30), (55, -30), (-55, 30), (55, 30)]
+  bosses = cq.Workplane("XY", origin=(0, 0, 2.5)).pushPoints(pts).circle(4.5).extrude(12)
+  pilots = cq.Workplane("XY", origin=(0, 0, 4.5)).pushPoints(pts).circle(1.7).extrude(10)
+  port = cq.Workplane("YZ", origin=(70, 0, 25)).circle(6).extrude(4, both=True)
+  result = box.union(bosses).cut(pilots).cut(port)
+broken:
+  - {expect: hole_count, replace: ['.cut(port)', '']}
+  - {expect: hole_position, replace: ['(55, 30)]', '(50, 30)]']}

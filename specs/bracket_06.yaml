@@ -1,0 +1,29 @@
+id: bracket_06
+family: bracket
+difficulty: hard
+text: >
+  L-bracket of 5 mm plate, 40 mm wide (Y). The horizontal leg lies on the XY
+  plane and is 60 mm long in X. The vertical leg rises along +Z at the
+  minimum-X end to an overall height of 50 mm, its outer face flush with that
+  end. A triangular gusset 5 mm thick, centred across the width, fills the
+  inside corner: its two straight edges run 30 mm along the top of the
+  horizontal leg and 30 mm up the inside face of the vertical leg, both measured
+  from the inside corner. Two 6.5 mm holes along Z through the horizontal leg,
+  45 mm from the minimum-X end, at Y = 10 and 30 mm.
+constraints:
+  bbox: [60, 40, 50]
+  thickness_min: 5
+  holes:
+    - {d: 6.5, depth: 5, axis: z, at: [[45, 10], [45, 30]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(60, 40, 5, centered=False)
+  upright = cq.Workplane("XY").box(5, 40, 50, centered=False)
+  # XZ workplane: local x is global X, local y is global Z, extrude(-5) goes along +Y
+  gusset = cq.Workplane("XZ", origin=(0, 17.5, 0)).polyline([(5, 5), (35, 5), (5, 35)]).close().extrude(-5)
+  holes = cq.Workplane("XY").pushPoints([(45, 10), (45, 30)]).circle(3.25).extrude(5)
+  result = base.union(upright).union(gusset).cut(holes)
+broken:
+  - {expect: volume, replace: ['.union(gusset)', '']}
+  - {expect: hole_position, replace: ['(45, 30)', '(45, 28)']}

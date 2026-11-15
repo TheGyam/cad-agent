@@ -1,0 +1,22 @@
+id: enclosure_04
+family: enclosure
+difficulty: medium
+text: >
+  Box open on its front, outside 90 mm (X) by 60 mm (Y) by 40 mm high (Z), with
+  all walls 2 mm thick. The open face is on the minimum-Y side; the top and the
+  bottom are closed. One 6 mm diameter hole along Y goes through the back wall
+  (the maximum-Y side), centred in X and in Z.
+constraints:
+  bbox: [90, 60, 40]
+  thickness_min: 2
+  holes:
+    - {d: 6, depth: 2, axis: y, at: [[45, 20]]}
+reference: |
+  import cadquery as cq
+
+  box = cq.Workplane("XY").box(90, 60, 40, centered=(True, True, False)).faces("<Y").shell(-2)
+  hole = cq.Workplane("XZ", origin=(0, 30, 20)).circle(3).extrude(4, both=True)
+  result = box.cut(hole)
+broken:
+  - {expect: volume, replace: ['faces("<Y")', 'faces("<X")']}
+  - {expect: hole_diameter, replace: ['circle(3)', 'circle(2.5)']}

@@ -1,0 +1,23 @@
+id: flange_01
+family: flange
+difficulty: easy
+text: >
+  Round flange, 100 mm outside diameter and 10 mm thick, its axis along Z. A
+  30 mm diameter bore through the centre. Four 9 mm diameter bolt holes along Z,
+  equally spaced on a 75 mm diameter bolt circle, with the first hole on the +X
+  side of the centre.
+constraints:
+  bbox: [100, 100, 10]
+  holes:
+    - {d: 30, depth: 10, axis: z, at: [[50, 50]]}
+    - {d: 9, depth: 10, axis: z, circle: {center: [50, 50], r: 37.5, n: 4, start: 0}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(50).extrude(10)
+  bore = cq.Workplane("XY").circle(15).extrude(10)
+  bolts = cq.Workplane("XY").polarArray(37.5, 0, 360, 4).circle(4.5).extrude(10)
+  result = disk.cut(bore).cut(bolts)
+broken:
+  - {expect: hole_position, replace: ['polarArray(37.5,', 'polarArray(35,']}
+  - {expect: hole_count, replace: ['polarArray(37.5, 0, 360, 4)', 'polarArray(37.5, 0, 360, 3)']}

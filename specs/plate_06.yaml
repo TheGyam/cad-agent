@@ -1,0 +1,26 @@
+id: plate_06
+family: plate
+difficulty: medium
+text: >
+  Plate 150 mm (X) by 80 mm (Y), 6 mm thick (Z), with a rectangular through
+  cut-out 60 mm (X) by 30 mm (Y) at the centre, its sides parallel to the plate
+  edges and its corners sharp. Four 6 mm diameter through holes along Z, with
+  centres 10 mm from both adjacent edges.
+constraints:
+  bbox: [150, 80, 6]
+  holes:
+    - {d: 6, depth: 6, axis: z, at: [[10, 10], [140, 10], [10, 70], [140, 70]]}
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(150, 80, 6)
+      .faces(">Z").workplane()
+      .rect(60, 30).cutThruAll()
+      .faces(">Z").workplane()
+      .rect(130, 60, forConstruction=True).vertices()
+      .hole(6)
+  )
+broken:
+  - {expect: volume, replace: ['rect(60, 30)', 'rect(80, 40)']}
+  - {expect: hole_count, replace: ['.hole(6)', '.hole(6).pushPoints([(-55, 0)]).hole(6)']}

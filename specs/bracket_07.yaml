@@ -1,0 +1,29 @@
+id: bracket_07
+family: bracket
+difficulty: hard
+text: >
+  Long L-bracket of 5 mm plate, 25 mm wide (Y). The horizontal leg lies on the
+  XY plane and is 100 mm long in X. The vertical leg rises along +Z at the
+  minimum-X end to an overall height of 40 mm, its outer face flush with that
+  end. The two vertical edges at the free end of the horizontal leg (the
+  maximum-X end) are chamfered 5 mm x 45 degrees. Three 5 mm holes along Z
+  through the horizontal leg, at 30, 60 and 85 mm from the minimum-X end,
+  centred across the width. One 5 mm hole along X through the vertical leg,
+  centred across the width, 25 mm above the bottom face.
+constraints:
+  bbox: [100, 25, 40]
+  thickness_min: 5
+  holes:
+    - {d: 5, depth: 5, axis: z, at: [[30, 12.5], [60, 12.5], [85, 12.5]]}
+    - {d: 5, depth: 5, axis: x, at: [[12.5, 25]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(100, 25, 5, centered=False).edges("|Z and >X").chamfer(5)
+  upright = cq.Workplane("XY").box(5, 25, 40, centered=False)
+  holes_z = cq.Workplane("XY").pushPoints([(30, 12.5), (60, 12.5), (85, 12.5)]).circle(2.5).extrude(5)
+  hole_x = cq.Workplane("YZ").center(12.5, 25).circle(2.5).extrude(5)
+  result = base.union(upright).cut(holes_z).cut(hole_x)
+broken:
+  - {expect: shape_mismatch, replace: ['.edges("|Z and >X").chamfer(5)', '']}
+  - {expect: hole_position, replace: ['center(12.5, 25)', 'center(12.5, 30)']}

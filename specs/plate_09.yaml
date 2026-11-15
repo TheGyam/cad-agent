@@ -1,0 +1,28 @@
+id: plate_09
+family: plate
+difficulty: hard
+text: >
+  Plate 100 mm (X) by 80 mm (Y), 6 mm thick (Z), with its four vertical corner
+  edges rounded to a 10 mm radius. At the centre, a through slot with fully
+  rounded ends, 40 mm long overall and 10 mm wide, its long axis along X. Four
+  6 mm diameter through holes along Z, with centres 15 mm from both adjacent
+  edges.
+constraints:
+  bbox: [100, 80, 6]
+  holes:
+    - {d: 6, depth: 6, axis: z, at: [[15, 15], [85, 15], [15, 65], [85, 65]]}
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(100, 80, 6)
+      .edges("|Z").fillet(10)
+      .faces(">Z").workplane()
+      .slot2D(40, 10).cutThruAll()
+      .faces(">Z").workplane()
+      .rect(70, 50, forConstruction=True).vertices()
+      .hole(6)
+  )
+broken:
+  - {expect: shape_mismatch, replace: ['slot2D(40, 10)', 'slot2D(40, 10, 90)']}
+  - {expect: hole_position, replace: ['rect(70, 50', 'rect(70, 54']}

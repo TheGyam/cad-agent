@@ -1,0 +1,27 @@
+id: bracket_05
+family: bracket
+difficulty: medium
+text: >
+  Heavy L-bracket of 6 mm plate, 50 mm wide (Y). The horizontal leg lies on the
+  XY plane and is 60 mm long in X. The vertical leg rises along +Z at the
+  minimum-X end to an overall height of 60 mm, its outer face flush with that
+  end. Four 6 mm holes along Z through the horizontal leg, at X = 25 and 45 mm
+  and Y = 12 and 38 mm. One 12 mm hole along X through the vertical leg, centred
+  across the width, 33 mm above the bottom face.
+constraints:
+  bbox: [60, 50, 60]
+  thickness_min: 6
+  holes:
+    - {d: 6, depth: 6, axis: z, at: [[25, 12], [45, 12], [25, 38], [45, 38]]}
+    - {d: 12, depth: 6, axis: x, at: [[25, 33]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(60, 50, 6, centered=False)
+  upright = cq.Workplane("XY").box(6, 50, 60, centered=False)
+  holes_z = cq.Workplane("XY").pushPoints([(25, 12), (45, 12), (25, 38), (45, 38)]).circle(3).extrude(6)
+  hole_x = cq.Workplane("YZ").center(25, 33).circle(6).extrude(6)
+  result = base.union(upright).cut(holes_z).cut(hole_x)
+broken:
+  - {expect: hole_diameter, replace: ['center(25, 33).circle(6)', 'center(25, 33).circle(5)']}
+  - {expect: wrong_dimension, replace: ['box(60, 50, 6,', 'box(66, 50, 6,']}

@@ -1,0 +1,27 @@
+id: flange_06
+family: flange
+difficulty: hard
+text: >
+  Square flange with a spigot, its axis along Z. A square plate 120 mm by
+  120 mm and 12 mm thick lies on the XY plane with its edges along X and Y; its
+  four vertical corner edges are rounded to a 10 mm radius. A round spigot 60 mm
+  in diameter rises 15 mm above the plate, centred on it, giving an overall
+  height of 27 mm. A 35 mm diameter bore runs through the plate and the spigot.
+  Four 11 mm diameter holes along Z through the plate, on the corners of a 90 mm
+  by 90 mm square centred on the plate.
+constraints:
+  bbox: [120, 120, 27]
+  holes:
+    - {d: 35, depth: 27, axis: z, at: [[60, 60]]}
+    - {d: 11, depth: 12, axis: z, at: [[15, 15], [105, 15], [15, 105], [105, 105]]}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").box(120, 120, 12, centered=(True, True, False)).edges("|Z").fillet(10)
+  spigot = cq.Workplane("XY").workplane(offset=12).circle(30).extrude(15)
+  bore = cq.Workplane("XY").circle(17.5).extrude(27)
+  bolts = cq.Workplane("XY").rect(90, 90, forConstruction=True).vertices().circle(5.5).extrude(12)
+  result = plate.union(spigot).cut(bore).cut(bolts)
+broken:
+  - {expect: hole_position, replace: ['rect(90, 90', 'rect(80, 80']}
+  - {expect: wrong_dimension, replace: ['circle(30).extrude(15)', 'circle(30).extrude(20)']}

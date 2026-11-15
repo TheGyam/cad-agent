@@ -1,0 +1,26 @@
+id: bracket_04
+family: bracket
+difficulty: medium
+text: >
+  L-bracket of 4 mm plate, 35 mm wide (Y). The horizontal leg lies on the XY
+  plane and is 70 mm long in X. The vertical leg rises along +Z at the
+  minimum-X end to an overall height of 45 mm, its outer face flush with that
+  end. The inside corner between the legs is filleted with a 4 mm radius; the
+  outside corner stays sharp. Two 5.5 mm holes along Z through the horizontal
+  leg, at 30 mm and 55 mm from the minimum-X end, centred across the width.
+constraints:
+  bbox: [70, 35, 45]
+  thickness_min: 4
+  holes:
+    - {d: 5.5, depth: 4, axis: z, at: [[30, 17.5], [55, 17.5]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(70, 35, 4, centered=False)
+  upright = cq.Workplane("XY").box(4, 35, 45, centered=False)
+  bracket = base.union(upright).edges(cq.selectors.NearestToPointSelector((4, 17.5, 4))).fillet(4)
+  holes = cq.Workplane("XY").pushPoints([(30, 17.5), (55, 17.5)]).circle(2.75).extrude(4)
+  result = bracket.cut(holes)
+broken:
+  - {expect: shape_mismatch, replace: ['.edges(cq.selectors.NearestToPointSelector((4, 17.5, 4))).fillet(4)', '']}
+  - {expect: hole_position, replace: ['(55, 17.5)', '(50, 17.5)']}

@@ -1,0 +1,24 @@
+id: enclosure_06
+family: enclosure
+difficulty: hard
+text: >
+  Open-top box with a lid rebate, outside 120 mm (X) by 80 mm (Y) by 50 mm high
+  (Z), with walls and floor 3 mm thick. Around the inside of the top rim a
+  rebate for a lid is cut 1.5 mm into the walls and 4 mm down from the top, so
+  the top 4 mm of every wall is 1.5 mm thick. Four 4 mm diameter holes along Z
+  go through the floor, with centres 20 mm from both adjacent outside walls.
+constraints:
+  bbox: [120, 80, 50]
+  thickness_min: 1.5
+  holes:
+    - {d: 4, depth: 3, axis: z, at: [[20, 20], [100, 20], [20, 60], [100, 60]]}
+reference: |
+  import cadquery as cq
+
+  box = cq.Workplane("XY").box(120, 80, 50, centered=(True, True, False)).faces(">Z").shell(-3)
+  rebate = cq.Workplane("XY", origin=(0, 0, 46)).rect(117, 77).extrude(4)
+  holes = cq.Workplane("XY").rect(80, 40, forConstruction=True).vertices().circle(2).extrude(3)
+  result = box.cut(rebate).cut(holes)
+broken:
+  - {expect: wall_thickness, replace: ['rect(117, 77)', 'rect(119, 79)']}
+  - {expect: hole_position, replace: ['rect(80, 40', 'rect(80, 44']}

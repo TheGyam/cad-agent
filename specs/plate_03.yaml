@@ -1,0 +1,23 @@
+id: plate_03
+family: plate
+difficulty: easy
+text: >
+  Flat bar 120 mm long (X), 40 mm wide (Y) and 5 mm thick (Z). Three 6 mm
+  diameter through holes along Z on the centre line of the width, at 20 mm,
+  60 mm and 100 mm from the minimum-X end.
+constraints:
+  bbox: [120, 40, 5]
+  holes:
+    - {d: 6, depth: 5, axis: z, at: [[20, 20], [60, 20], [100, 20]]}
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(120, 40, 5)
+      .faces(">Z").workplane()
+      .pushPoints([(-40, 0), (0, 0), (40, 0)])
+      .hole(6)
+  )
+broken:
+  - {expect: hole_count, replace: ['[(-40, 0), (0, 0), (40, 0)]', '[(-40, 0), (40, 0)]']}
+  - {expect: hole_position, replace: ['(40, 0)]', '(35, 0)]']}

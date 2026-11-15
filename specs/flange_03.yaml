@@ -1,0 +1,24 @@
+id: flange_03
+family: flange
+difficulty: medium
+text: >
+  Round flange, 150 mm outside diameter and 15 mm thick, its axis along Z. A
+  60 mm diameter bore through the centre. Eight 13.5 mm diameter bolt holes along
+  Z, equally spaced on a 120 mm diameter bolt circle and rotated so that no hole
+  sits on the X or Y axis: the first hole is 22.5 degrees from +X, counting
+  towards +Y.
+constraints:
+  bbox: [150, 150, 15]
+  holes:
+    - {d: 60, depth: 15, axis: z, at: [[75, 75]]}
+    - {d: 13.5, depth: 15, axis: z, circle: {center: [75, 75], r: 60, n: 8, start: 22.5}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(75).extrude(15)
+  bore = cq.Workplane("XY").circle(30).extrude(15)
+  bolts = cq.Workplane("XY").polarArray(60, 22.5, 360, 8).circle(6.75).extrude(15)
+  result = disk.cut(bore).cut(bolts)
+broken:
+  - {expect: hole_position, replace: ['polarArray(60, 22.5,', 'polarArray(60, 0,']}
+  - {expect: wrong_dimension, replace: ['circle(75).extrude(15)', 'circle(75).extrude(12)']}

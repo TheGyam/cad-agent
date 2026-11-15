@@ -1,0 +1,23 @@
+id: flange_02
+family: flange
+difficulty: easy
+text: >
+  Round flange, 120 mm outside diameter and 12 mm thick, its axis along Z. A
+  40 mm diameter bore through the centre. Six 11 mm diameter bolt holes along Z,
+  equally spaced on a 95 mm diameter bolt circle, one of them on the +X side of
+  the centre.
+constraints:
+  bbox: [120, 120, 12]
+  holes:
+    - {d: 40, depth: 12, axis: z, at: [[60, 60]]}
+    - {d: 11, depth: 12, axis: z, circle: {center: [60, 60], r: 47.5, n: 6, start: 0}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(60).extrude(12)
+  bore = cq.Workplane("XY").circle(20).extrude(12)
+  bolts = cq.Workplane("XY").polarArray(47.5, 0, 360, 6).circle(5.5).extrude(12)
+  result = disk.cut(bore).cut(bolts)
+broken:
+  - {expect: hole_diameter, replace: ['circle(5.5)', 'circle(5)']}
+  - {expect: hole_position, replace: ['polarArray(47.5, 0,', 'polarArray(47.5, 30,']}

@@ -1,0 +1,29 @@
+id: bracket_03
+family: bracket
+difficulty: medium
+text: >
+  L-bracket of 5 mm plate, 30 mm wide (Y). The horizontal leg lies on the XY
+  plane and is 80 mm long in X. The vertical leg rises along +Z at the
+  minimum-X end to an overall height of 50 mm, its outer face flush with that
+  end. Two 6.6 mm holes along Z through the horizontal leg, at 25 mm and 65 mm
+  from the minimum-X end. Two 6.6 mm holes along X through the vertical leg, at
+  20 mm and 40 mm above the bottom face. All four holes are centred across the
+  width.
+constraints:
+  bbox: [80, 30, 50]
+  thickness_min: 5
+  holes:
+    - {d: 6.6, depth: 5, axis: z, at: [[25, 15], [65, 15]]}
+    - {d: 6.6, depth: 5, axis: x, at: [[15, 20], [15, 40]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(80, 30, 5, centered=False)
+  upright = cq.Workplane("XY").box(5, 30, 50, centered=False)
+  holes_z = cq.Workplane("XY").pushPoints([(25, 15), (65, 15)]).circle(3.3).extrude(5)
+  holes_x = cq.Workplane("YZ").pushPoints([(15, 20), (15, 40)]).circle(3.3).extrude(5)
+  result = base.union(upright).cut(holes_z).cut(holes_x)
+broken:
+  - {expect: hole_position, replace: ['(15, 40)', '(15, 35)']}
+  - expect: wrong_face
+    replace: ['cq.Workplane("YZ").pushPoints([(15, 20), (15, 40)])', 'cq.Workplane("XY").pushPoints([(35, 15), (50, 15)])']

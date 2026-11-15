@@ -1,0 +1,17 @@
+id: plate_02
+family: plate
+difficulty: easy
+text: >
+  Rectangular plate 100 mm (X) by 60 mm (Y), 8 mm thick (Z), with one 20 mm
+  diameter through hole along Z at the centre of the plate.
+constraints:
+  bbox: [100, 60, 8]
+  holes:
+    - {d: 20, depth: 8, axis: z, at: [[50, 30]]}
+reference: |
+  import cadquery as cq
+
+  result = cq.Workplane("XY").box(100, 60, 8).faces(">Z").workplane().hole(20)
+broken:
+  - {expect: wrong_dimension, replace: ['box(100, 60, 8)', 'box(100, 60, 10)']}
+  - {expect: hole_count, replace: ['.faces(">Z").workplane().hole(20)', '']}

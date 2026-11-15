@@ -1,0 +1,27 @@
+id: bracket_02
+family: bracket
+difficulty: easy
+text: >
+  Equal-leg L-bracket of 5 mm plate, 40 mm wide (Y). The horizontal leg lies on
+  the XY plane and is 50 mm long in X. The vertical leg rises along +Z at the
+  minimum-X end to an overall height of 50 mm, its outer face flush with that
+  end. One 8 mm hole through each leg, centred across the width: the hole in the
+  horizontal leg goes along Z, 27.5 mm from the minimum-X end; the hole in the
+  vertical leg goes along X, 27.5 mm above the bottom face.
+constraints:
+  bbox: [50, 40, 50]
+  thickness_min: 5
+  holes:
+    - {d: 8, depth: 5, axis: z, at: [[27.5, 20]]}
+    - {d: 8, depth: 5, axis: x, at: [[20, 27.5]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(50, 40, 5, centered=False)
+  upright = cq.Workplane("XY").box(5, 40, 50, centered=False)
+  hole_z = cq.Workplane("XY").center(27.5, 20).circle(4).extrude(5)
+  hole_x = cq.Workplane("YZ").center(20, 27.5).circle(4).extrude(5)
+  result = base.union(upright).cut(hole_z).cut(hole_x)
+broken:
+  - {expect: hole_count, replace: ['.cut(hole_x)', '']}
+  - {expect: wrong_dimension, replace: ['box(5, 40, 50', 'box(5, 40, 45']}

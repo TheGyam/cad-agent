@@ -1,0 +1,26 @@
+id: flange_04
+family: flange
+difficulty: medium
+text: >
+  Hub flange with its axis along Z. A disk 140 mm in diameter and 12 mm thick
+  sits on the XY plane; a round hub 70 mm in diameter rises 20 mm above the top
+  of the disk, giving an overall height of 32 mm. A 40 mm diameter bore runs
+  through the disk and the hub. Six 11 mm diameter bolt holes along Z through
+  the disk, equally spaced on a 110 mm diameter bolt circle, one of them on the
+  +X side of the centre.
+constraints:
+  bbox: [140, 140, 32]
+  holes:
+    - {d: 40, depth: 32, axis: z, at: [[70, 70]]}
+    - {d: 11, depth: 12, axis: z, circle: {center: [70, 70], r: 55, n: 6, start: 0}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(70).extrude(12)
+  hub = cq.Workplane("XY").workplane(offset=12).circle(35).extrude(20)
+  bore = cq.Workplane("XY").circle(20).extrude(32)
+  bolts = cq.Workplane("XY").polarArray(55, 0, 360, 6).circle(5.5).extrude(12)
+  result = disk.union(hub).cut(bore).cut(bolts)
+broken:
+  - {expect: wrong_dimension, replace: ['circle(35).extrude(20)', 'circle(35).extrude(15)']}
+  - {expect: hole_diameter, replace: ['circle(20).extrude(32)', 'circle(19).extrude(32)']}

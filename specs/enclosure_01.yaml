@@ -1,0 +1,16 @@
+id: enclosure_01
+family: enclosure
+difficulty: easy
+text: >
+  Open-top box, outside 80 mm (X) by 60 mm (Y) by 30 mm high (Z). The walls and
+  the floor are 2.5 mm thick and the top face is open.
+constraints:
+  bbox: [80, 60, 30]
+  thickness_min: 2.5
+reference: |
+  import cadquery as cq
+
+  result = cq.Workplane("XY").box(80, 60, 30, centered=(True, True, False)).faces(">Z").shell(-2.5)
+broken:
+  - {expect: wall_thickness, replace: ['shell(-2.5)', 'shell(-1.5)']}
+  - {expect: shape_mismatch, replace: ['faces(">Z")', 'faces("<Z")']}

@@ -1,0 +1,25 @@
+id: plate_05
+family: plate
+difficulty: medium
+text: >
+  Plate 100 mm (X) by 100 mm (Y), 10 mm thick (Z). The four outer edges of the
+  top face are chamfered 1.5 mm x 45 degrees; the hole edges are not chamfered.
+  Six 8 mm diameter through holes along Z in two rows of three, at X = 20, 50
+  and 80 mm and Y = 25 and 75 mm.
+constraints:
+  bbox: [100, 100, 10]
+  holes:
+    - {d: 8, depth: 10, axis: z, at: [[20, 25], [50, 25], [80, 25], [20, 75], [50, 75], [80, 75]]}
+reference: |
+  import cadquery as cq
+
+  result = (
+      cq.Workplane("XY").box(100, 100, 10)
+      .faces(">Z").edges().chamfer(1.5)
+      .faces(">Z").workplane()
+      .rarray(30, 50, 3, 2)
+      .hole(8)
+  )
+broken:
+  - {expect: shape_mismatch, replace: ['.faces(">Z").edges().chamfer(1.5)', '.faces("<Z").edges().chamfer(1.5)']}
+  - {expect: hole_position, replace: ['rarray(30, 50', 'rarray(30, 46']}
