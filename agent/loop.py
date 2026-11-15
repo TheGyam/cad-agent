@@ -82,7 +82,9 @@ def solve(spec: dict, llm, memory=None, max_attempts: int = 5, log=lambda record
             try:
                 message, usage = llm.chat(head + tail, tools=[RUN_AND_CHECK])
             except openai.BadRequestError as e:
-                if "tool_use_failed" not in str(e):  # the provider rejected a malformed tool call
+                # The provider rejected the model's tool call as malformed (Groq words this
+                # "tool_use_failed" or "Failed to parse tool call arguments"). It counts as an attempt.
+                if "tool" not in str(e).lower():
                     raise
                 message, usage = None, None
             model_seconds = time.perf_counter() - start

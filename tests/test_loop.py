@@ -55,6 +55,21 @@ def test_lessons_go_into_the_prompt(tmp_path):
     assert "Always check which face" in model.requests[0][1]["content"]
 
 
+def test_a_rejected_tool_call_counts_as_an_attempt():
+    import openai
+
+    class RejectsFirstCall(ScriptedModel):
+        def chat(self, messages, tools=None):
+            if tools and not self.requests:
+                self.requests.append(messages)
+                response = NS(status_code=400, headers={}, request=None)
+                raise openai.BadRequestError("Failed to parse tool call arguments as JSON", response=response, body=None)
+            return super().chat(messages, tools)
+
+    task = loop.solve(SPEC, RejectsFirstCall([SPEC["reference"]]))
+    assert task["passed"] and task["attempts"] == 2
+
+
 def test_stops_after_the_last_attempt(tmp_path):
     model = ScriptedModel(["result = (", None, "result = ("])
     logged = []
