@@ -27,6 +27,9 @@ at most 40 words, with no dimensions or numbers from this part. Reply with the
 sentence only."""
 
 NUMBER = re.compile(r"\d+(?:\.\d+)?")
+# Lessons must be about CAD. Without this filter the model learned "always include the
+# `code` argument in run_and_check" from rejected tool calls, crowding out real lessons.
+HARNESS = re.compile(r"run_and_check|tool call|\bchecker\b|`code` argument", re.IGNORECASE)
 
 
 class Memory:
@@ -44,6 +47,8 @@ class Memory:
         text = " ".join(text.split()).lstrip("-* ").strip()
         if not text or len(text) > 400:
             return "empty or too long"
+        if HARNESS.search(text):
+            return "about the tool or the checker, not about modelling"
         leaked = set(NUMBER.findall(text)) & set(NUMBER.findall(spec["text"])) - {"0", "1"}
         if leaked:
             return f"repeats numbers from the spec: {sorted(leaked)}"
@@ -55,8 +60,15 @@ class Memory:
         self.path.write_text(json.dumps(self.lessons, indent=2), encoding="utf-8")
         return None
 
-    def learn(self, llm, spec: dict, attempts: list[dict]) -> dict:
-        """Ask the model for a lesson from these attempts and try to keep it."""
+    def learn(self, llm, spec: dict, attempts: list[dict]) -> dict | None:
+        """Ask the model for a lesson from these attempts and try to keep it.
+
+        Attempts with no code (the tool call itself was rejected) say nothing about
+        modelling, so they are left out; with none left, no lesson is asked for.
+        """
+        attempts = [a for a in attempts if a["categories"] != ["no_code"]]
+        if not attempts or (len(attempts) == 1 and attempts[0]["passed"]):
+            return None
         history = "\n".join(
             f"Attempt {a['attempt']}: " + ("PASS" if a["passed"] else
                                            "; ".join(f"{v['category']}: {v['message']}" for v in a["violations"]))

@@ -9,7 +9,18 @@ def test_keeps_general_lessons_and_refuses_the_rest(tmp_path):
     assert "numbers" in m.add("Put the holes 10 mm from the edges.", SPEC)
     assert "nearly the same" in m.add("Call .faces('>Z').workplane() again before every new hole pattern.", SPEC)
     assert m.add("", SPEC) is not None
+    assert "about the tool" in m.add("Always include a `run_and_check` call with the `code` argument.", SPEC)
     assert len(m.lessons) == 1
+
+
+def test_no_lesson_from_rejected_tool_calls_alone(tmp_path):
+    class NeverCalled:
+        def chat(self, *a, **k):
+            raise AssertionError("no lesson should be asked for")
+
+    rejected = {"categories": ["no_code"], "passed": False, "attempt": 1, "violations": []}
+    passed = {"categories": [], "passed": True, "attempt": 2, "violations": []}
+    assert Memory(tmp_path / "l.json").learn(NeverCalled(), SPEC, [rejected, passed]) is None
 
 
 def test_relevant_prefers_the_same_family_then_the_newest(tmp_path):

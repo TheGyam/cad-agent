@@ -132,8 +132,9 @@ def solve(spec: dict, llm, memory=None, max_attempts: int = 5, log=lambda record
     }
     if memory is not None and (len(attempts) > 1 or not task["passed"]):
         try:
-            task["lesson"] = memory.learn(llm, spec, attempts)
-            task["tokens"] += task["lesson"].pop("tokens")
+            if lesson := memory.learn(llm, spec, attempts):
+                task["lesson"] = lesson
+                task["tokens"] += lesson.pop("tokens")
         except openai.BadRequestError as e:
             task["lesson"] = {"lesson": "", "kept": False, "refused": f"model error: {e}"}
     return task
