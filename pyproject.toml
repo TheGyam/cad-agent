@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cad-agent"
+version = "0.1.0"
+description = "An LLM agent that writes CadQuery code from a part spec, checks the geometry, and learns from its mistakes."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "cadquery>=2.4",
+  "openai>=1.40",
+  "pyyaml>=6",
+  "pandas>=2",
+  "matplotlib>=3.8",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+packages = ["agent", "bench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
