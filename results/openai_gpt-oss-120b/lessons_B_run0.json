@@ -1,0 +1,127 @@
+[
+  {
+    "text": "Always verify the exact syntax of selectors (e.g., use proper quotation and logical operators) before applying operations to avoid parse errors in CadQuery expressions.",
+    "spec": "bracket_04",
+    "family": "bracket"
+  },
+  {
+    "text": "Always ensure a solid is the current object (or explicitly selected) before applying .hole(), otherwise CadQuery cannot locate a solid to cut.",
+    "spec": "enclosure_03",
+    "family": "enclosure"
+  },
+  {
+    "text": "Always verify that all features are applied to the correct workplane and correctly positioned before performing boolean operations, ensuring no unintended geometry extends beyond or falls short of the intended boundaries.",
+    "spec": "flange_05",
+    "family": "flange"
+  },
+  {
+    "text": "Always use CadQuery\u2019s built\u2011in math functions via \u201cimport math\u201d (e.g., math.cos, math.radians) or the \u201ccq\u201d vector methods, rather than assuming they exist directly on the cadquery module.",
+    "spec": "flange_04",
+    "family": "flange"
+  },
+  {
+    "text": "Always sketch and extrude the part\u2019s full envelope first, then verify its bounding\u2011box dimensions before adding any cuts or features.",
+    "spec": "bracket_06",
+    "family": "bracket"
+  },
+  {
+    "text": "Always combine separate features into a single solid (e.g., using `union()` or `add()`) before exporting, so the model contains exactly one continuous solid.",
+    "spec": "bracket_01",
+    "family": "bracket"
+  },
+  {
+    "text": "Always set the hole\u2019s extrusion depth to fully intersect the solid (or use a through\u2011cut) and double\u2011check that the cut direction and length match the part\u2019s thickness before finalizing the model.",
+    "spec": "plate_10",
+    "family": "plate"
+  },
+  {
+    "text": "Always define hole positions using exact trigonometric calculations from the centre rather than approximating coordinates, ensuring symmetric placement around the axis.",
+    "spec": "flange_01",
+    "family": "flange"
+  },
+  {
+    "text": "Always verify that all intended features (holes, cuts, etc.) are fully defined and applied before finalizing the solid, using a quick visual inspection or selection query to confirm each feature exists.",
+    "spec": "plate_01",
+    "family": "plate"
+  },
+  {
+    "text": "Always create a base solid before performing a cut operation, ensuring the workplane\u2019s stack contains a solid to cut from.",
+    "spec": "plate_06",
+    "family": "plate"
+  },
+  {
+    "text": "Always ensure operations close all faces and maintain consistent outward normals, avoiding self\u2011intersections by checking that cuts, fillets, and merges are applied to a solid that remains fully enclosed.",
+    "spec": "flange_06",
+    "family": "flange"
+  },
+  {
+    "text": "Always ensure your script creates a single solid by merging all separate bodies (e.g., using .union() or .combine()) before finalizing the model.",
+    "spec": "bracket_05",
+    "family": "bracket"
+  },
+  {
+    "text": "Always write and test each CadQuery statement incrementally, checking syntax (especially parentheses, commas, and string formatting) before chaining multiple operations into a single line.",
+    "spec": "bracket_07",
+    "family": "bracket"
+  },
+  {
+    "text": "Always create or reference a solid before applying features like hole(); use a workplane tied to an existing solid (e.g., `faces(\">Z\")`) rather than an empty plane.",
+    "spec": "enclosure_04",
+    "family": "enclosure"
+  },
+  {
+    "text": "Always verify that every CadQuery statement has matching parentheses, commas, and correct indentation before running the script.",
+    "spec": "plate_03",
+    "family": "plate"
+  },
+  {
+    "text": "Always preview and inspect cut operations after sketching, confirming that the sketch geometry is fully defined, correctly positioned, and actually applied before extrusion to ensure intended holes are created.",
+    "spec": "enclosure_02",
+    "family": "enclosure"
+  },
+  {
+    "text": "Always create and position all intended holes (or features) before applying cuts or unions, and double\u2011check their locations against the sketch constraints to prevent missing geometry.",
+    "spec": "plate_09",
+    "family": "plate"
+  },
+  {
+    "text": "Always verify the count and placement of all intended features (holes, cuts, etc.) before finalizing the model, using a systematic checklist or inspection of the geometry.",
+    "spec": "flange_02",
+    "family": "flange"
+  },
+  {
+    "text": "Always create a new workplane with `.transformed(offset=\u2026, rotate=\u2026)` or `.center(x, y)` instead of passing a non\u2011existent `center` keyword to `Workplane.workplane()`.",
+    "spec": "flange_03",
+    "family": "flange"
+  },
+  {
+    "text": "Always subtract the inner cavity volume from the outer solid when modeling hollow parts to ensure the final volume reflects only the material thickness.",
+    "spec": "enclosure_01",
+    "family": "enclosure"
+  },
+  {
+    "text": "Always confirm that the face selector you use actually matches existing geometry (e.g., check the orientation and existence of faces) before applying workplane operations.",
+    "spec": "bracket_02",
+    "family": "bracket"
+  },
+  {
+    "text": "Always define hole locations relative to fixed reference geometry (e.g., origin or bounding box) before creating features, so coordinates remain consistent and aren\u2019t shifted by preceding operations.",
+    "spec": "enclosure_06",
+    "family": "enclosure"
+  },
+  {
+    "text": "Always position the workplane before calling hole()\u2014use center() or pushPoints() to set the location, because Workplane.hole() does not accept a position argument.",
+    "spec": "plate_05",
+    "family": "plate"
+  },
+  {
+    "text": "Always select specific edges (or a edge\u2011selection query) before calling .fillet(), because fillet cannot be applied to an entire solid without explicit edge references.",
+    "spec": "enclosure_05",
+    "family": "enclosure"
+  },
+  {
+    "text": "Always define the pocket depth first and then subtract the through\u2011holes, limiting their depth to stop at the pocket floor so that sufficient material remains between holes and the outer walls.",
+    "spec": "plate_08",
+    "family": "plate"
+  }
+]

@@ -103,27 +103,75 @@ The same 30 specs in the same shuffled order for both conditions, temperature
 
 ## Results
 
-> **Not run yet.** The table below is filled in from `results/<model>/summary.md`
-> once the benchmark has run. No number in this README comes from anywhere else.
+One run per condition with `openai/gpt-oss-120b` on Groq, 30 specs each. Every
+number below comes from [results/openai_gpt-oss-120b/summary.md](results/openai_gpt-oss-120b/summary.md),
+which `bench/analyze.py` builds from the committed logs.
 
 | Metric | Without memory | With memory |
 |---|---|---|
-| Specs passed within 5 attempts | — | — |
-| Passed on the first attempt | — | — |
-| First attempt ran but was wrong | — | — |
-| Mean attempts, specs that passed | — | — |
+| Specs passed within 5 attempts | 63% (19/30) | 47% (14/30) |
+| Passed on the first attempt | 13% | 7% |
+| First attempt ran but was wrong | 33% | 27% |
+| First attempt did not run | 53% | 67% |
+| Mean attempts, specs that passed | 2.58 | 3.00 |
+| Tokens per spec | 4,069 | 5,276 |
 
-<!-- After a run: results/<model>/pass_rate_by_family.png and failure_categories.png -->
+**Memory did not help; in this run it made things worse.** Paired by spec, 6
+specs passed only without memory and 1 only with it. That gap is not
+statistically significant on 30 specs (exact McNemar test, p = 0.125), so the
+honest reading is "no measured benefit", not "memory hurts by 16 points".
+
+![Pass rate by part family](results/openai_gpt-oss-120b/pass_rate_by_family.png)
+![Failure categories by condition](results/openai_gpt-oss-120b/failure_categories.png)
 
 ## Failure analysis
 
-To be written from the logs after the run: the failure categories by condition,
-which ones memory reduced, and the most frequent failure that remained.
+**"It runs" is not "it's right".** Without memory, a third of first attempts
+(33%) ran without an error and exported a solid that was wrong. Without the
+checker, each of those would have looked like a success. The most common
+violations across all failed attempts were the volume being off and the wrong
+number of holes, followed by runtime errors and holes in the wrong place.
+
+Typical mistakes the checker caught, all from code that ran:
+
+- placing the second hole on `workplane(centerOption='CenterOfMass')`, which moves
+  once the first hole is cut, so the hole lands 0.3 mm off;
+- `faces('>Z').edges().chamfer(3)`, which chamfers every edge of the top face, not
+  only the bore;
+- bosses built next to an enclosure but never joined to it: five solids, not one.
+
+**Why memory hurt: the lessons broke the tool calls.** The model sends its code
+as JSON inside a tool call, and the provider rejects a call it cannot parse. With
+0 to 3 lessons in the prompt, 5% of attempts were rejected, the same rate as
+without memory. With 4 or more lessons, 21% to 32% were. Half of the first
+attempts with memory (15 of 30) were rejected calls, against 3 of 30 without.
+Plates suffered most (90% passed without memory, 40% with): every plate ran with
+6 to 10 lessons in its prompt.
+
+**The lessons themselves were weak.** Most are generic advice ("always verify
+that all features are applied..."); 11 of 25 contain typographic characters such
+as curly quotes and non-breaking hyphens; and one is plainly wrong: it says to stop
+through holes at a pocket floor. Two kinds of lesson
+were useful and specific: that `.hole()` needs a solid on the stack, and that
+`Workplane.workplane()` has no `center` argument.
+
+**A first version of memory was worse still.** It also asked for lessons after
+rejected tool calls, so 4 of its first 13 lessons were "always include the code
+argument in run_and_check". That run measured a bug, so it is
+[archived with a note](results/openai_gpt-oss-120b/archive_B_memory_bug/NOTE.md)
+and not counted above.
+
+**Most frequent remaining failure:** a wrong hole count, in both conditions (4
+of the 11 specs that failed without memory, 8 of the 16 with it).
 
 ## Limits and next ideas
 
-- **One model, small benchmark.** 30 specs and a few runs give wide error bars;
-  the spread across runs is reported for that reason.
+- **One model, one run, 30 specs.** Error bars are wide; the 16-point gap above
+  is not significant. More runs (`--runs 3`) would show the spread.
+- **Next fix for memory:** fewer, shorter lessons in plain ASCII, kept apart
+  from the code the model writes, and only lessons that name a specific CadQuery
+  call. Then rerun condition B and check whether rejected tool calls drop back to
+  the 5% seen without memory.
 - **The sandbox limits time, not resources.** There is no memory or network cap,
   because Windows has no portable way to set one from Python. A container would.
 - **Wall thickness is sampled**, 25 points per flat face. A wall that is thin only
