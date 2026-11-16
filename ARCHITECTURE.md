@@ -16,6 +16,7 @@ agent/
   checker.py            Loads specs and measures a part against one
   loop.py               Generate, run, check, feed back, up to 5 attempts
   memory.py             Lessons: asked for, filtered, stored, put in the prompt
+                        (v1 for condition B, the stricter v2 for C)
 bench/
   run_bench.py          Runs all specs in both conditions, logs to JSONL, resumes
   analyze.py            Turns a results folder into summary.md and plots
@@ -30,7 +31,7 @@ spec text + lessons → model → run_and_check(code)
                               → sandbox process → part.step
                               → checker → violations → back to the model
                        repeat until PASS or 5 attempts
-                       → (condition B) one lesson → lessons_B_run<r>.json
+                       → (conditions B, C) one lesson → lessons_<B|C>_run<r>.json
 ```
 
 Each step hands the next one plain data: a spec dict, a code string, a STEP

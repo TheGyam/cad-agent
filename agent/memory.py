@@ -7,6 +7,15 @@ kept). At most `limit` lessons go into a prompt: same family first, then newest.
 
 ponytail: no embeddings or vector search; with tens of lessons, family plus
 recency is enough. Rank by similarity if the store grows to hundreds.
+
+Two versions, both kept so each benchmark condition stays reproducible:
+
+- v1 (condition B): up to 10 lessons, up to 40 words, any wording.
+- v2 (condition C, `strict=True`): built from what v1's run showed. With four or
+  more lessons in the prompt, the model's tool calls were rejected far more often
+  (21-32% against 5%), so v2 shows at most 3. Lessons are made plain ASCII (v1's had
+  curly quotes and non-breaking hyphens), kept to 30 words, and must name a
+  specific CadQuery call, which rules out generic "always verify" advice.
 """
 
 import difflib
@@ -26,6 +35,25 @@ different part. It must be general CadQuery or modelling advice: one sentence,
 at most 40 words, with no dimensions or numbers from this part. Reply with the
 sentence only."""
 
+LESSON_PROMPT_V2 = """You just worked on this CAD part:
+
+{spec}
+
+Your attempts and what the checker reported:
+{history}
+
+Write ONE lesson that would have avoided the first mistake when modelling a
+different part. Name the specific CadQuery method or selector involved (for
+example `.hole()` or `.faces()`), say what goes wrong and what to do instead.
+One sentence, at most 30 words, plain ASCII, no numbers from this part. Reply
+with the sentence only."""
+
+# Typographic characters seen in v1's lessons, and their plain equivalents.
+ASCII = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u2010": "-",
+                       "\u2011": "-", "\u2012": "-", "\u2013": "-", "\u2014": "-", "\u2026": "...",
+                       "\u00a0": " ", "\u202f": " "})
+CALL = re.compile(r"\w+\(")
+
 NUMBER = re.compile(r"\d+(?:\.\d+)?")
 # Lessons must be about CAD. Without this filter the model learned "always include the
 # `code` argument in run_and_check" from rejected tool calls, crowding out real lessons.
@@ -33,9 +61,10 @@ HARNESS = re.compile(r"run_and_check|tool call|\bchecker\b|`code` argument", re.
 
 
 class Memory:
-    def __init__(self, path: Path, limit: int = 10):
+    def __init__(self, path: Path, limit: int | None = None, strict: bool = False):
         self.path = Path(path)
-        self.limit = limit
+        self.strict = strict
+        self.limit = limit if limit is not None else (3 if strict else 10)
         self.lessons = json.loads(self.path.read_text(encoding="utf-8")) if self.path.exists() else []
 
     def relevant(self, family: str) -> list[str]:
@@ -47,6 +76,14 @@ class Memory:
         text = " ".join(text.split()).lstrip("-* ").strip()
         if not text or len(text) > 400:
             return "empty or too long"
+        if self.strict:
+            text = text.translate(ASCII)
+            if not text.isascii():
+                return "not plain ASCII"
+            if len(text.split()) > 30:
+                return "longer than 30 words"
+            if not CALL.search(text):
+                return "names no CadQuery call"
         if HARNESS.search(text):
             return "about the tool or the checker, not about modelling"
         leaked = set(NUMBER.findall(text)) & set(NUMBER.findall(spec["text"])) - {"0", "1"}
@@ -74,7 +111,8 @@ class Memory:
                                            "; ".join(f"{v['category']}: {v['message']}" for v in a["violations"]))
             for a in attempts
         )
-        message, usage = llm.chat([{"role": "user", "content": LESSON_PROMPT.format(spec=spec["text"].strip(),
+        prompt = LESSON_PROMPT_V2 if self.strict else LESSON_PROMPT
+        message, usage = llm.chat([{"role": "user", "content": prompt.format(spec=spec["text"].strip(),
                                                                                     history=history)}])
         text = (message.content or "").strip().splitlines()[0] if (message.content or "").strip() else ""
         refused = self.add(text, spec)

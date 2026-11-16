@@ -39,3 +39,16 @@ def test_relevant_prefers_the_same_family_then_the_newest(tmp_path):
         "Use polarArray for bolt circles.",
         "Union both legs before cutting holes.",
     ]
+
+
+def test_v2_keeps_only_short_plain_lessons_that_name_a_call(tmp_path):
+    m = Memory(tmp_path / "lessons.json", strict=True)
+    assert m.limit == 3
+    assert m.add("Always verify that every feature is applied before finishing the model.", SPEC) == \
+        "names no CadQuery call"
+    assert m.add("Re-select the face with .faces() after .hole(), because hole() returns to the old plane. " * 3,
+                 SPEC) == "longer than 30 words"
+    assert m.add("After .hole(), select the face again with \u201c.faces()\u201d \u2011 hole() resets the plane.",
+                 SPEC) is None
+    assert m.relevant("plate") == ['After .hole(), select the face again with ".faces()" - hole() resets the plane.']
+    assert m.add("Use polarArray() for bolt circles \u2603 to space them evenly.", SPEC) == "not plain ASCII"
