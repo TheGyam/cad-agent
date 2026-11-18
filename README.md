@@ -100,7 +100,9 @@ partway. The hole-depth check caught them, and plate_07 keeps that mistake as a
 broken copy.
 
 **Conditions.** A: no memory. B: memory v1. C: memory v2. In B and C the memory
-starts empty and builds up over the run. All three see the same 30 specs in the
+starts empty and builds up over the run. D (results pending) replaces learned
+memory with a hand-written CadQuery guide whose examples are tested, hints in the
+checker's feedback, and a short history of earlier attempts in each retry. All three see the same 30 specs in the
 same shuffled order, at temperature 1.0, seeded per run.
 
 ## Results

@@ -56,16 +56,17 @@ def reference_shape(spec: dict) -> cq.Shape:
     return _build_reference(spec["reference"])
 
 
-def violation(category: str, message: str) -> dict:
+def violation(category: str, message: str, hint: str | None = None) -> dict:
+    """One failure. A hint is extra detail on where or why; condition D shows it to the model."""
     assert category in CATEGORIES, category
-    return {"category": category, "message": message}
+    return {"category": category, "message": message} | ({"hint": hint} if hint else {})
 
 
 def check(spec: dict, shape: cq.Shape, reference: cq.Shape) -> list[dict]:
     """Return the violations of `shape` against `spec`; an empty list means it passes."""
     solids = shape.Solids()
     if len(solids) != 1:
-        return [violation("invalid_solid", f"expected exactly one solid, found {len(solids)}")]
+        return [violation("invalid_solid", f"expected exactly one solid, found {len(solids)}", _solids_hint(solids))]
     solid = solids[0]
     if not solid.isValid() or solid.Volume() <= 0:
         return [violation("invalid_solid", "the solid is not valid (open, inside out or self-intersecting)")]
@@ -89,6 +90,19 @@ def to_origin(shape: cq.Shape) -> cq.Shape:
 
 def _fmt(values) -> str:
     return "(" + ", ".join(f"{v:.1f}" for v in values) + ")"
+
+
+def _solids_hint(solids: list) -> str | None:
+    if not solids:
+        return None
+    lo = cq.Compound.makeCompound(solids).BoundingBox()
+    parts = []
+    for s in sorted(solids, key=lambda s: -s.Volume())[:6]:
+        bb = s.BoundingBox()
+        parts.append(f"{s.Volume():,.0f} mm3 from {_fmt((bb.xmin - lo.xmin, bb.ymin - lo.ymin, bb.zmin - lo.zmin))} "
+                     f"to {_fmt((bb.xmax - lo.xmin, bb.ymax - lo.ymin, bb.zmax - lo.zmin))}")
+    return ("the separate solids are: " + "; ".join(parts) +
+            ". Join features with .union(); a boss or rib must overlap the body to join it.")
 
 
 # --- size --------------------------------------------------------------------
@@ -250,6 +264,15 @@ def check_holes(solid: cq.Shape, expected: list[dict]) -> list[dict]:
     for f in left:
         out.append(violation("hole_count", f"unexpected {f['d']:.2f} mm hole along {f['axis'].upper()} "
                                            f"at {_fmt(f['at'])}"))
+    if out:
+        listed = "; ".join(f"{f['d']:.2f} mm along {f['axis'].upper()} at {_fmt(f['at'])}, {f['depth']:.1f} mm deep"
+                           for f in found[:12])
+        out[0]["hint"] = f"round holes found in the part: {listed}" if found else "the part has no round holes"
+        if any(v["category"] == "hole_position" for v in out) and all(
+                f["axis"] != "other" for f in found):
+            out[0]["hint"] += (". Holes a little off usually come from a workplane centred on the face; "
+                               "build the part from the origin with centered=False and use .workplane(origin=(0, 0, 0)), "
+                               "so spec positions are plain coordinates")
     return out
 
 

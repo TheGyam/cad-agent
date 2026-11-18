@@ -14,11 +14,12 @@ agent/
   runner.py             Runs generated code in a sandbox process; loads STEP files
   _sandbox.py           The sandbox process itself. Never imported.
   checker.py            Loads specs and measures a part against one
-  loop.py               Generate, run, check, feed back, up to 5 attempts
+  loop.py               Generate, run, check, feed back, up to 5 attempts; the
+                        CadQuery guide that condition D adds to the prompt
   memory.py             Lessons: asked for, filtered, stored, put in the prompt
                         (v1 for condition B, the stricter v2 for C)
 bench/
-  run_bench.py          Runs all specs in both conditions, logs to JSONL, resumes
+  run_bench.py          Runs all specs in each condition (A-D), logs to JSONL, resumes
   analyze.py            Turns a results folder into summary.md and plots
 tests/                pytest. The checker tests run every spec's parts.
 results/<model>/      Benchmark logs, lessons, summary and plots, kept in git.
@@ -79,5 +80,10 @@ file, a list of `{category, message}` violations, a task record.
 - **Token budget.** Groq's free tier allows about 200K tokens a day per model. A
   retry sends only the spec, the lessons and the latest attempt with its result,
   not the whole conversation.
+- **Condition D is guided, not learned.** It adds a hand-written CadQuery guide to the
+  prompt, the checker's hints (where the separate solids are, which holes were found)
+  to the feedback, and a one-line-per-attempt history to each retry. Every example in
+  the guide is built and measured in `tests/test_loop.py`. Hints never change a
+  violation's category, and conditions A-C never see them.
 - **Lessons cannot carry answers.** A lesson that repeats any number from the spec
   text (other than 0 and 1) is refused, and so is one nearly the same as a kept one.

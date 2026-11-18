@@ -35,6 +35,53 @@ Rules:
 
 RETRY = "Fix every violation and call run_and_check again with the complete script."
 
+# Condition D adds this guide to the system prompt. It covers the API mistakes that
+# made most of the benchmark's crashed runs. Every example runs in tests/test_loop.py,
+# so a wrong example fails the tests instead of reaching the model.
+GUIDE_EXAMPLES = {
+    "plate with holes": """\
+import cadquery as cq
+result = (cq.Workplane("XY").box(80, 50, 6, centered=False)
+          .faces(">Z").workplane(origin=(0, 0, 0))
+          .pushPoints([(10, 10), (70, 10)]).hole(5))""",
+    "bolt circle": """\
+import cadquery as cq
+result = (cq.Workplane("XY").box(80, 50, 6, centered=False)
+          .faces(">Z").workplane(origin=(40, 25, 0))
+          .polarArray(15, 0, 360, 4).hole(4))""",
+    "hole along Y": """\
+import cadquery as cq
+body = cq.Workplane("XY").box(80, 50, 30, centered=False)
+result = body.cut(cq.Solid.makeCylinder(3, 50, cq.Vector(40, 0, 15), cq.Vector(0, 1, 0)))""",
+    "fillets, chamfers and a joined boss": """\
+import cadquery as cq
+body = cq.Workplane("XY").box(80, 50, 6, centered=False).edges("|Z").fillet(3)
+body = body.faces(">Z").edges().chamfer(0.5)
+boss = cq.Workplane("XY").box(10, 10, 10, centered=False).translate((20, 20, 5))
+result = body.union(boss)""",
+}
+
+GUIDE = """CadQuery notes (checked against CadQuery 2.x):
+- Build from the origin corner with centered=False, so the spec's positions are
+  plain coordinates. On a face, .workplane(origin=(0, 0, 0)) keeps X and Y global.
+- .hole(d) cuts through the whole part unless you pass depth=. After .hole(),
+  select the face again (.faces(">Z").workplane(origin=(0, 0, 0))) before the next feature.
+- For a hole along X or Y, cut an explicit cylinder:
+  cq.Solid.makeCylinder(radius, length, base_point, direction). Side-face workplanes
+  have rotated local axes.
+- Selectors name directions only: ">Z" top, "<Z" bottom, "|Z" parallel to Z,
+  "#Z" perpendicular to Z, combined with and/or/not, e.g. "|Z and >X". There is no
+  "X==0". To pick by position use cq.selectors.BoxSelector((x0, y0, z0), (x1, y1, z1)).
+- .fillet() and .chamfer() need a solid and selected edges: make the solid first,
+  then .edges(...).fillet(r).
+- Join every feature into the body with .union(); a boss or rib must overlap the
+  body, or the part is several solids.
+- Use Python's math module. cq.math, cq.cos and cq.Cylinder do not exist.
+  .workplane() has no center= argument; move with .center(x, y) or .moveTo(x, y).
+
+Examples:
+""" + "\n\n".join(f"# {name}\n{code}" for name, code in GUIDE_EXAMPLES.items())
+
 
 def evaluate(spec: dict, code: str, workdir: Path, reference: cq.Shape | None = None) -> list[dict]:
     """Run the code in the sandbox and check the part. An empty list means it passes."""
@@ -47,10 +94,22 @@ def evaluate(spec: dict, code: str, workdir: Path, reference: cq.Shape | None = 
         return [violation("invalid_solid", f"the part could not be measured: {type(e).__name__}: {e}")]
 
 
-def feedback(violations: list[dict]) -> str:
+def feedback(violations: list[dict], hints: bool = False) -> str:
     if not violations:
         return "PASS"
-    return "FAIL\n" + "\n".join(f"- {v['category']}: {v['message']}" for v in violations) + "\n" + RETRY
+    lines = []
+    for v in violations:
+        lines.append(f"- {v['category']}: {v['message']}")
+        if hints and v.get("hint"):
+            lines.append(f"  hint: {v['hint']}")
+    return "FAIL\n" + "\n".join(lines) + "\n" + RETRY
+
+
+def history(attempts: list[dict]) -> str:
+    """One line per earlier attempt, so the model sees a mistake it keeps repeating."""
+    lines = [f"- attempt {a['attempt']}: " + (", ".join(a["categories"]) or "pass") for a in attempts]
+    return ("Earlier attempts on this part:\n" + "\n".join(lines) +
+            "\nIf the same failure repeats, build that feature a different way.")
 
 
 def _code(call) -> str | None:
@@ -65,13 +124,19 @@ def _code(call) -> str | None:
     return code
 
 
-def solve(spec: dict, llm, memory=None, max_attempts: int = 5, log=lambda record: None) -> dict:
-    """Work on one spec until it passes or the attempts run out. Returns the task record."""
+def solve(spec: dict, llm, memory=None, max_attempts: int = 5, log=lambda record: None,
+          guided: bool = False) -> dict:
+    """Work on one spec until it passes or the attempts run out. Returns the task record.
+
+    guided (condition D): the system prompt carries GUIDE, the feedback carries the
+    checker's hints, and a retry lists the earlier attempts' failures.
+    """
     lessons = memory.relevant(spec["family"]) if memory else []
     prompt = spec["text"].strip()
     if lessons:
         prompt += "\n\nLessons from earlier parts:\n" + "\n".join(f"- {lesson}" for lesson in lessons)
-    head = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}]
+    system = SYSTEM + "\n\n" + GUIDE if guided else SYSTEM
+    head = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
     tail: list[dict] = []
     reference = checker.reference_shape(spec)
     attempts = []
@@ -97,12 +162,15 @@ def solve(spec: dict, llm, memory=None, max_attempts: int = 5, log=lambda record
                 tail = [{"role": "user", "content": "Call run_and_check with the complete script."}]
             else:
                 violations = evaluate(spec, code, Path(tmp) / f"attempt_{n}", reference)
+                result = feedback(violations, hints=guided)
+                if guided and violations and attempts:
+                    result += "\n\n" + history(attempts)
                 tail = [
                     {"role": "assistant", "content": message.content or "", "tool_calls": [{
                         "id": call.id, "type": "function",
                         "function": {"name": call.function.name, "arguments": call.function.arguments},
                     }]},
-                    {"role": "tool", "tool_call_id": call.id, "content": feedback(violations)},
+                    {"role": "tool", "tool_call_id": call.id, "content": result},
                 ]
             record = {
                 "attempt": n,

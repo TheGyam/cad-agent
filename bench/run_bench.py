@@ -1,4 +1,5 @@
-"""Run the benchmark: every spec without memory (A), with memory v1 (B) or v2 (C).
+"""Run the benchmark: every spec without memory (A), with memory v1 (B) or v2 (C), or
+guided (D: a CadQuery guide in the prompt, hints in the feedback, attempt history).
 
 Every attempt is appended to attempts.jsonl and every finished spec to
 tasks.jsonl in the output folder. Running the same command again skips the specs
@@ -6,7 +7,7 @@ already finished, so a run stopped by the daily token limit carries on where it
 stopped. Run r shuffles the specs with seed r, and every condition uses that order.
 
     python -m bench.run_bench --runs 1
-    python -m bench.run_bench --runs 1 --conditions C
+    python -m bench.run_bench --runs 1 --conditions D
     python -m bench.run_bench --runs 3 --conditions B --specs plate_01 flange_02
 """
 
@@ -41,7 +42,7 @@ def append_jsonl(path: Path, record: dict) -> None:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--runs", type=int, default=1, help="runs per condition (default 1)")
-    parser.add_argument("--conditions", default="AB", help="A = no memory, B = memory v1, C = memory v2 (default AB)")
+    parser.add_argument("--conditions", default="AB", help="A = no memory, B = memory v1, C = memory v2, D = guided (default AB)")
     parser.add_argument("--specs", nargs="*", help="only these spec ids")
     parser.add_argument("--max-attempts", type=int, default=5)
     parser.add_argument("--out", type=Path, help="results folder (default results/<model>)")
@@ -50,8 +51,8 @@ def main(argv=None) -> int:
     if not (os.environ.get("CAD_AGENT_API_KEY") or os.environ.get("GROQ_API_KEY")):
         print("Set GROQ_API_KEY (or CAD_AGENT_API_KEY) first. See the README.", file=sys.stderr)
         return 1
-    if not args.conditions or set(args.conditions) - set("ABC"):
-        parser.error("--conditions takes letters from A, B and C")
+    if not args.conditions or set(args.conditions) - set("ABCD"):
+        parser.error("--conditions takes letters from A, B, C and D")
 
     specs = checker.load_specs()
     if args.specs:
@@ -67,7 +68,7 @@ def main(argv=None) -> int:
         random.Random(run).shuffle(order)
         for condition in args.conditions:
             lessons = out / f"lessons_{condition}_run{run}.json"
-            memory = {"A": None, "B": Memory(lessons), "C": Memory(lessons, strict=True)}[condition]
+            memory = {"A": None, "B": Memory(lessons), "C": Memory(lessons, strict=True), "D": None}[condition]
             for spec in order:
                 if (condition, run, spec["id"]) in done:
                     continue
@@ -76,7 +77,8 @@ def main(argv=None) -> int:
                 print(f"run {run} {condition} {spec['id']:<13}", end=" ", flush=True)
                 try:
                     task = loop.solve(spec, llm, memory, args.max_attempts,
-                                      log=lambda a: append_jsonl(out / "attempts.jsonl", {**meta, **a}))
+                                      log=lambda a: append_jsonl(out / "attempts.jsonl", {**meta, **a}),
+                                      guided=condition == "D")
                 except openai.RateLimitError as e:
                     print(f"\nRate limit reached ({e.message}).\nRun the same command again later to carry on.")
                     return 2

@@ -19,8 +19,8 @@ import pandas as pd  # noqa: E402
 from bench.run_bench import read_jsonl  # noqa: E402
 
 DID_NOT_RUN = {"no_code", "syntax_error", "runtime_error", "timeout"}
-CONDITIONS = {"A": "without memory", "B": "memory v1", "C": "memory v2"}
-COLORS = {"A": "#2a78d6", "B": "#eb6834", "C": "#1baf7a"}  # categorical slots 1-3 of the validated palette
+CONDITIONS = {"A": "without memory", "B": "memory v1", "C": "memory v2", "D": "guided"}
+COLORS = {"A": "#2a78d6", "B": "#eb6834", "C": "#1baf7a", "D": "#eda100"}  # categorical slots 1-4 of the validated palette
 INK, MUTED, GRID = "#1f1f1e", "#6b6a63", "#e4e3dd"
 
 

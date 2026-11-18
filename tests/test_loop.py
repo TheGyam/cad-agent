@@ -76,3 +76,49 @@ def test_stops_after_the_last_attempt(tmp_path):
     task = loop.solve(SPEC, model, max_attempts=3, log=logged.append)
     assert not task["passed"] and task["attempts"] == 3
     assert [a["categories"] for a in logged] == [["syntax_error"], ["no_code"], ["syntax_error"]]
+
+
+def test_every_guide_example_builds_what_it_claims():
+    from agent.runner import build_trusted
+
+    holes = {}
+    for name, code in loop.GUIDE_EXAMPLES.items():
+        shape = build_trusted(code)
+        assert len(shape.Solids()) == 1 and shape.isValid(), name
+        holes[name] = sorted((round(h["d"], 2), h["axis"], tuple(round(v, 2) for v in h["at"]), round(h["depth"], 2))
+                             for h in checker.find_holes(shape))
+    assert holes["plate with holes"] == [(5.0, "z", (10.0, 10.0), 6.0), (5.0, "z", (70.0, 10.0), 6.0)]
+    assert {h[2] for h in holes["bolt circle"]} == {(55.0, 25.0), (40.0, 40.0), (25.0, 25.0), (40.0, 10.0)}
+    assert holes["hole along Y"] == [(6.0, "y", (40.0, 15.0), 50.0)]
+    assert all(name in loop.GUIDE for name in loop.GUIDE_EXAMPLES)
+
+
+def test_guided_mode_adds_the_guide_hints_and_history():
+    no_hole = SPEC["reference"].replace('.faces(">Z").workplane().hole(20)', "")
+    model = ScriptedModel([no_hole, no_hole, SPEC["reference"]])
+
+    task = loop.solve(SPEC, model, guided=True)
+
+    assert task["passed"] and task["attempts"] == 3
+    assert loop.GUIDE in model.requests[0][0]["content"]
+    second, third = model.requests[1][-1]["content"], model.requests[2][-1]["content"]
+    assert "hint: the part has no round holes" in second and "Earlier attempts" not in second
+    # the history lists earlier attempts; the latest one's failures are the feedback above it
+    assert "- attempt 1: hole_count, volume" in third and "- attempt 2" not in third
+
+
+def test_unguided_feedback_has_no_hints():
+    model = ScriptedModel([SPEC["reference"].replace('.faces(">Z").workplane().hole(20)', ""), SPEC["reference"]])
+    loop.solve(SPEC, model)
+    assert loop.GUIDE not in model.requests[0][0]["content"]
+    assert "hint:" not in model.requests[1][-1]["content"]
+
+
+def test_separate_solids_are_listed_in_the_hint():
+    import cadquery as cq
+
+    two = cq.Compound.makeCompound([cq.Solid.makeBox(10, 10, 10), cq.Solid.makeBox(5, 5, 5, cq.Vector(20, 0, 0))])
+    [v] = checker.check(SPEC, two, checker.reference_shape(SPEC))
+    assert v["category"] == "invalid_solid"
+    assert "1,000 mm3 from (0.0, 0.0, 0.0) to (10.0, 10.0, 10.0)" in v["hint"]
+    assert "125 mm3 from (20.0, 0.0, 0.0)" in v["hint"]
