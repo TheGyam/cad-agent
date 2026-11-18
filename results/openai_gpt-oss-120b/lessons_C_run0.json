@@ -1,0 +1,112 @@
+[
+  {
+    "text": "Avoid unexpected indent by aligning the first CadQuery call (e.g., .extrude()) with the left margin, not indented inside a block.",
+    "spec": "bracket_04",
+    "family": "bracket"
+  },
+  {
+    "text": "When chaining .extrude() keep the call on the same indentation level; a stray indent causes a syntax error.",
+    "spec": "enclosure_03",
+    "family": "enclosure"
+  },
+  {
+    "text": "Use a correctly formatted selector string with `.edges()`-ensure parentheses are balanced and logical operators are spaced (e.g., `\"Z and not (Z <= top)\"`) to avoid parsing errors.",
+    "spec": "flange_05",
+    "family": "flange"
+  },
+  {
+    "text": "When merging separate bodies, use .union() (or .add()) instead of creating overlapping solids, otherwise extra or missing volume appears.",
+    "spec": "bracket_06",
+    "family": "bracket"
+  },
+  {
+    "text": "When extruding, use .extrude() with a bounded face selector like .faces(\">Z\") to set the exact height, otherwise the model may extend too far.",
+    "spec": "bracket_01",
+    "family": "bracket"
+  },
+  {
+    "text": "Always close parentheses and commas correctly when chaining CadQuery methods like `.extrude()`, otherwise Python reports a syntax error before any geometry is built.",
+    "spec": "bracket_08",
+    "family": "bracket"
+  },
+  {
+    "text": "Use the workplane's `.center(x, y)` method to position holes precisely instead of approximating coordinates with `.moveTo`, which can introduce placement offsets.",
+    "spec": "plate_10",
+    "family": "plate"
+  },
+  {
+    "text": "Always begin a new workplane with `.workplane()` before calling `.hole()`; otherwise the previous solid stays active and subsequent operations cause errors.",
+    "spec": "bracket_03",
+    "family": "bracket"
+  },
+  {
+    "text": "Use `.faces(\"<direction>\").workplane().center(x,y).hole(diameter)` instead of a global `.hole()`; selecting the correct face ensures holes are placed on the intended leg.",
+    "spec": "bracket_05",
+    "family": "bracket"
+  },
+  {
+    "text": "Select edges with .edges() before calling .chamfer(); calling .chamfer directly without an edge selection causes the runtime error.",
+    "spec": "plate_04",
+    "family": "plate"
+  },
+  {
+    "text": "Use plain string selectors without parentheses (e.g., `.edges(\"|Z\")`) because CadQuery's parser cannot handle grouped expressions, so avoid wrapping conditions in \"( )\".",
+    "spec": "bracket_07",
+    "family": "bracket"
+  },
+  {
+    "text": "Use a face selector like `.faces(\">Z\")` to limit extrusion to the intended surface; extruding the whole solid creates unintended thickness and incorrect bounding dimensions.",
+    "spec": "enclosure_04",
+    "family": "enclosure"
+  },
+  {
+    "text": "Use .workplane() without a center argument; apply .center() or .transformed() beforehand to set the origin, because .workplane() does not accept a \"center\" keyword.",
+    "spec": "plate_03",
+    "family": "plate"
+  },
+  {
+    "text": "Use a precise face selector (e.g., `.faces(\">Z\")`) before calling `.hole()` to guarantee the hole is created on the intended wall.",
+    "spec": "enclosure_02",
+    "family": "enclosure"
+  },
+  {
+    "text": "Use the `.hole()` method with an explicit `depth` equal to the plate thickness; otherwise the default half-depth creates shallow holes.",
+    "spec": "plate_09",
+    "family": "plate"
+  },
+  {
+    "text": "Use Python's `math` module (e.g., `import math; math.cos`, `math.radians`) instead of the non-existent `cq.math` when positioning features before applying `.hole()`.",
+    "spec": "flange_03",
+    "family": "flange"
+  },
+  {
+    "text": "When using .cutBlind() always supply the required depth argument; omitting it triggers a TypeError.",
+    "spec": "enclosure_01",
+    "family": "enclosure"
+  },
+  {
+    "text": "Use a precise selector like `.faces(\">Z\")` to pick the correct side before calling `.hole()`, otherwise the hole is placed on the wrong face and only one appears.",
+    "spec": "bracket_02",
+    "family": "bracket"
+  },
+  {
+    "text": "Use `.workplane()` with `.center(x, y)` (or `.transformed(offset=...)`) instead of the nonexistent `centerPoint` argument to position features correctly.",
+    "spec": "enclosure_06",
+    "family": "enclosure"
+  },
+  {
+    "text": "Use a proper edge selector (e.g., `.edges(\"<X or Y>\")`) before calling `.chamfer()`, otherwise no edges are selected and the chamfer operation fails.",
+    "spec": "plate_05",
+    "family": "plate"
+  },
+  {
+    "text": "Use `.workplane()` with positional arguments, not a nonexistent `centerPoint` parameter; pass the origin point via `.transformed(offset=...)` or `.center()` instead.",
+    "spec": "enclosure_05",
+    "family": "enclosure"
+  },
+  {
+    "text": "Always call `.extrude()` (or otherwise create a solid) before using `.cutBlind()`, otherwise there is no solid on the stack to cut.",
+    "spec": "plate_08",
+    "family": "plate"
+  }
+]

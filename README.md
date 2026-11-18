@@ -25,7 +25,7 @@ FAIL
 ## How it works
 
 ```
-            ┌──────────── spec text + up to 10 lessons ────────────┐
+            ┌────────────── spec text + lessons ───────────────────┐
             ▼                                                      │
       ┌───────────┐  run_and_check(code)  ┌─────────────────────┐  │
       │   model   │ ────────────────────▶ │ sandbox process     │  │
@@ -56,8 +56,10 @@ FAIL
 - **Memory** ([agent/memory.py](agent/memory.py)). After a part that needed fixes
   or failed, the model writes one general lesson. A lesson that repeats any number
   from the spec is refused, so memory cannot carry answers, and so is one nearly
-  the same as a lesson already kept. Up to 10 go into each prompt, same part
-  family first. No vector database.
+  the same as a lesson already kept. Same part family first, then newest. No
+  vector database. There are two versions: v1 puts up to 10 lessons in a
+  prompt; v2, built from what v1's run showed, puts at most 3, keeps them to 30
+  words of plain ASCII, and refuses any that do not name a CadQuery call.
 
 ## The benchmark
 
@@ -97,9 +99,9 @@ feature back on the original workplane, so two references had holes that stopped
 partway. The hole-depth check caught them, and plate_07 keeps that mistake as a
 broken copy.
 
-**Conditions.** A: no memory. B: memory builds up over the run, starting empty.
-The same 30 specs in the same shuffled order for both conditions, temperature
-1.0, seeded per run.
+**Conditions.** A: no memory. B: memory v1. C: memory v2. In B and C the memory
+starts empty and builds up over the run. All three see the same 30 specs in the
+same shuffled order, at temperature 1.0, seeded per run.
 
 ## Results
 
@@ -107,19 +109,22 @@ One run per condition with `openai/gpt-oss-120b` on Groq, 30 specs each. Every
 number below comes from [results/openai_gpt-oss-120b/summary.md](results/openai_gpt-oss-120b/summary.md),
 which `bench/analyze.py` builds from the committed logs.
 
-| Metric | Without memory | With memory |
-|---|---|---|
-| Specs passed within 5 attempts | 63% (19/30) | 47% (14/30) |
-| Passed on the first attempt | 13% | 7% |
-| First attempt ran but was wrong | 33% | 27% |
-| First attempt did not run | 53% | 67% |
-| Mean attempts, specs that passed | 2.58 | 3.00 |
-| Tokens per spec | 4,069 | 5,276 |
+| Metric | A: no memory | B: memory v1 | C: memory v2 |
+|---|---|---|---|
+| Specs passed within 5 attempts | 63% (19/30) | 47% (14/30) | 47% (14/30) |
+| Passed on the first attempt | 13% | 7% | 17% |
+| First attempt ran but was wrong | 33% | 27% | 27% |
+| First attempt did not run | 53% | 67% | 57% |
+| Mean attempts, specs that passed | 2.58 | 3.00 | 2.21 |
+| Attempts rejected as malformed tool calls | 5% | 20% | 10% |
+| Tokens per spec | 4,069 | 5,276 | 4,828 |
 
-**Memory did not help; in this run it made things worse.** Paired by spec, 6
-specs passed only without memory and 1 only with it. That gap is not
-statistically significant on 30 specs (exact McNemar test, p = 0.125), so the
-honest reading is "no measured benefit", not "memory hurts by 16 points".
+**Neither version of memory helped.** Paired by spec against the run without
+memory, v1 has 6 specs that passed only without memory and 1 only with it
+(exact McNemar test, p = 0.125); v2 has 7 and 2 (p = 0.180). Neither gap is
+statistically significant on 30 specs, so the honest reading is "no measured
+benefit", not "memory hurts by 16 points". v2's better first-attempt rate (5
+specs against 4) is one spec, which is noise.
 
 ![Pass rate by part family](results/openai_gpt-oss-120b/pass_rate_by_family.png)
 ![Failure categories by condition](results/openai_gpt-oss-120b/failure_categories.png)
@@ -140,20 +145,38 @@ Typical mistakes the checker caught, all from code that ran:
   only the bore;
 - bosses built next to an enclosure but never joined to it: five solids, not one.
 
-**Why memory hurt: the lessons broke the tool calls.** The model sends its code
-as JSON inside a tool call, and the provider rejects a call it cannot parse. With
-0 to 3 lessons in the prompt, 5% of attempts were rejected, the same rate as
-without memory. With 4 or more lessons, 21% to 32% were. Half of the first
-attempts with memory (15 of 30) were rejected calls, against 3 of 30 without.
-Plates suffered most (90% passed without memory, 40% with): every plate ran with
-6 to 10 lessons in its prompt.
+**Memory v1: the lessons broke the tool calls.** The model sends its code as
+JSON inside a tool call, and the provider rejects a call it cannot parse. With 0
+to 3 lessons in the prompt, 5% of attempts were rejected, the same rate as
+without memory. With 4 or more lessons, 21% to 32% were. Half of v1's first
+attempts (15 of 30) were rejected calls, against 3 of 30 without memory. Plates
+suffered most (90% passed without memory, 40% with v1): every plate ran with 6
+to 10 lessons in its prompt. The lessons were also weak: most were generic advice
+("always verify that all features are applied..."), 11 of 25 contained curly
+quotes or non-breaking hyphens, and one was plainly wrong.
 
-**The lessons themselves were weak.** Most are generic advice ("always verify
-that all features are applied..."); 11 of 25 contain typographic characters such
-as curly quotes and non-breaking hyphens; and one is plainly wrong: it says to stop
-through holes at a pocket floor. Two kinds of lesson
-were useful and specific: that `.hole()` needs a solid on the stack, and that
-`Workplane.workplane()` has no `center` argument.
+**Memory v2 fixed the tool calls, but not the pass rate.** v2 was built to fix
+exactly that: at most 3 lessons, plain ASCII, and each must name a CadQuery call.
+Rejected first attempts fell back to 4 of 30 (3 without memory), and plates
+recovered to 80%. Yet the pass rate stayed at 47%, because flanges (83% to 50%)
+and enclosures (50% to 17%) fell. So the broken tool calls explain much of what
+went wrong with v1, but not all of it: once they are fixed, the lessons still do
+not help.
+
+**Naming a CadQuery call does not make a lesson correct.** The new filter let 22
+of 24 lessons through. Some are useful and specific: `.workplane()` has no
+`center` or `centerPoint` argument; use Python's `math`, not `cq.math`;
+`.cutBlind()` needs a depth. But at least three are wrong, and the model has no
+way to tell:
+
+- "the default half-depth creates shallow holes": `.hole()` cuts all the way
+  through by default;
+- "CadQuery's parser cannot handle grouped expressions" in selectors: it can;
+- an example selector, `"<X or Y>"`, that is not valid syntax.
+
+Two more are about Python indentation, not CAD. The model writes a lesson from
+its own mistake, often before it knows the fix, and nothing checks the lesson
+against CadQuery. A lesson is kept only if it looks right, not because it is.
 
 **A first version of memory was worse still.** It also asked for lessons after
 rejected tool calls, so 4 of its first 13 lessons were "always include the code
@@ -161,17 +184,27 @@ argument in run_and_check". That run measured a bug, so it is
 [archived with a note](results/openai_gpt-oss-120b/archive_B_memory_bug/NOTE.md)
 and not counted above.
 
-**Most frequent remaining failure:** a wrong hole count, in both conditions (4
-of the 11 specs that failed without memory, 8 of the 16 with it).
+**Most frequent remaining failure:** a wrong hole count without memory and with
+v1 (4 of the 11 specs that failed without memory, 8 of the 16 with v1). With v2
+it is code that does not run or builds an invalid solid (8 of 16 failed specs,
+against 4 of 11 without memory), which fits lessons that send the model towards
+wrong API use.
+
+**A note on the v2 run.** The run resumes between specs, not within one. While
+the daily token limit was nearly used up, bracket_03 was started 45 times and cut
+off each time before it finished. Only the finished attempt is counted: the
+analysis ignores attempts of unfinished specs. No lesson is written until a spec
+finishes, so the restarts did not change the memory.
 
 ## Limits and next ideas
 
-- **One model, one run, 30 specs.** Error bars are wide; the 16-point gap above
-  is not significant. More runs (`--runs 3`) would show the spread.
-- **Next fix for memory:** fewer, shorter lessons in plain ASCII, kept apart
-  from the code the model writes, and only lessons that name a specific CadQuery
-  call. Then rerun condition B and check whether rejected tool calls drop back to
-  the 5% seen without memory.
+- **One model, one run, 30 specs.** Error bars are wide; the 16-point gaps above
+  are not significant. More runs (`--runs 3`) would show the spread.
+- **Next fix for memory: check a lesson before keeping it.** Shape rules (length,
+  ASCII, naming a call) fixed the tool calls but let wrong lessons through. A
+  lesson should be kept only if it changes behaviour, for example only if the
+  spec it came from passes when solved again with the lesson in the prompt. That
+  costs a solve per lesson, so it waits for a larger token budget.
 - **The sandbox limits time, not resources.** There is no memory or network cap,
   because Windows has no portable way to set one from Python. A container would.
 - **Wall thickness is sampled**, 25 points per flat face. A wall that is thin only
@@ -205,7 +238,9 @@ python -m bench.analyze results/openai_gpt-oss-120b
 
 One condition-run of 30 specs uses roughly a day of Groq's free token budget. If
 the limit is reached, the run stops with a message; run the same command again
-later and it carries on from where it stopped.
+later and it carries on from the spec where it stopped. The limit is a rolling
+24 hours, so wait several hours, not minutes: a spec started with too few tokens
+left is cut off and starts again from its first attempt.
 
 Other models: set `CAD_AGENT_BASE_URL`, `CAD_AGENT_MODEL` and `CAD_AGENT_API_KEY`
 for any OpenAI-compatible API (see [agent/llm.py](agent/llm.py)).
