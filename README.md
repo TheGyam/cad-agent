@@ -1,9 +1,11 @@
 # cad-agent
 
 An LLM agent that writes [CadQuery](https://github.com/CadQuery/cadquery) code
-from a written part spec, a checker that measures the solid it builds, and a
-memory of lessons from earlier mistakes. A 30-part benchmark measures whether the
-memory helps.
+from a written part spec, and a checker that measures the solid it builds. A
+30-part benchmark compares four ways of helping the model: none, two versions of
+a memory of lessons it writes itself, and a hand-written guide with more precise
+feedback. The guide raised the pass rate from 63% to 77%; the learned memories
+lowered it to 47%.
 
 ## The problem: "it runs" is not "it's right"
 
@@ -100,8 +102,8 @@ partway. The hole-depth check caught them, and plate_07 keeps that mistake as a
 broken copy.
 
 **Conditions.** A: no memory. B: memory v1. C: memory v2. In B and C the memory
-starts empty and builds up over the run. D (results pending) replaces learned
-memory with a hand-written CadQuery guide whose examples are tested, hints in the
+starts empty and builds up over the run. D (guided) has no memory. Instead it
+adds a hand-written CadQuery guide whose examples are tested, hints in the
 checker's feedback, and a short history of earlier attempts in each retry. All three see the same 30 specs in the
 same shuffled order, at temperature 1.0, seeded per run.
 
@@ -111,15 +113,15 @@ One run per condition with `openai/gpt-oss-120b` on Groq, 30 specs each. Every
 number below comes from [results/openai_gpt-oss-120b/summary.md](results/openai_gpt-oss-120b/summary.md),
 which `bench/analyze.py` builds from the committed logs.
 
-| Metric | A: no memory | B: memory v1 | C: memory v2 |
-|---|---|---|---|
-| Specs passed within 5 attempts | 63% (19/30) | 47% (14/30) | 47% (14/30) |
-| Passed on the first attempt | 13% | 7% | 17% |
-| First attempt ran but was wrong | 33% | 27% | 27% |
-| First attempt did not run | 53% | 67% | 57% |
-| Mean attempts, specs that passed | 2.58 | 3.00 | 2.21 |
-| Attempts rejected as malformed tool calls | 5% | 20% | 10% |
-| Tokens per spec | 4,069 | 5,276 | 4,828 |
+| Metric | A: no memory | B: memory v1 | C: memory v2 | D: guided |
+|---|---|---|---|---|
+| Specs passed within 5 attempts | 63% (19/30) | 47% (14/30) | 47% (14/30) | **77% (23/30)** |
+| Passed on the first attempt | 13% | 7% | 17% | **37%** |
+| First attempt ran but was wrong | 33% | 27% | 27% | 30% |
+| First attempt did not run | 53% | 67% | 57% | 33% |
+| Mean attempts, specs that passed | 2.58 | 3.00 | 2.21 | 2.13 |
+| Attempts rejected as malformed tool calls | 5% | 20% | 10% | 14% |
+| Tokens per spec | 4,069 | 5,276 | 4,828 | 4,472 |
 
 **Neither version of memory helped.** Paired by spec against the run without
 memory, v1 has 6 specs that passed only without memory and 1 only with it
@@ -127,6 +129,11 @@ memory, v1 has 6 specs that passed only without memory and 1 only with it
 statistically significant on 30 specs, so the honest reading is "no measured
 benefit", not "memory hurts by 16 points". v2's better first-attempt rate (5
 specs against 4) is one spec, which is noise.
+
+**The guided condition did best, but one run cannot prove it.** D passed 23 of
+30 specs and nearly three times as many on the first attempt (11 against 4).
+Paired by spec, 5 specs passed only with D and 1 only without help (p = 0.219):
+promising, not yet significant. Three runs of A and D would settle it.
 
 ![Pass rate by part family](results/openai_gpt-oss-120b/pass_rate_by_family.png)
 ![Failure categories by condition](results/openai_gpt-oss-120b/failure_categories.png)
@@ -186,11 +193,41 @@ argument in run_and_check". That run measured a bug, so it is
 [archived with a note](results/openai_gpt-oss-120b/archive_B_memory_bug/NOTE.md)
 and not counted above.
 
-**Most frequent remaining failure:** a wrong hole count without memory and with
-v1 (4 of the 11 specs that failed without memory, 8 of the 16 with v1). With v2
+**Most frequent remaining failure:** a wrong hole count without memory, with v1
+and in D (2 of D's 7 failures) (4 of the 11 specs that failed without memory, 8 of the 16 with v1). With v2
 it is code that does not run or builds an invalid solid (8 of 16 failed specs,
 against 4 of 11 without memory), which fits lessons that send the model towards
 wrong API use.
+
+**The guided condition fixed the failures the logs pointed at.** The specs that
+passed only with D are the ones that kept repeating one mistake without help:
+
+- bracket_01, an easy bracket whose holes landed 0.3 mm off five times without
+  help, passed on the first attempt: the guide says to build from the origin
+  and place holes with `.workplane(origin=(0, 0, 0))`;
+- enclosure_03, "expected one solid, found 5" five times without help, passed on
+  the second attempt, after the hint listed where the five solids were;
+- enclosure_04, a hole along Y missing four times without help, passed on the
+  second attempt.
+
+The passing code uses the advice it was given: bracket_01 places its holes with
+`.workplane(origin=(0, 0, 0))`, enclosure_04 cuts its hole with
+`cq.Solid.makeCylinder` as the guide's example does, and enclosure_03 joins its
+parts with `.union()`.
+
+Runs that crashed fell from 24% of attempts to 13%. Brackets rose from 25% to
+62%, enclosures from 50% to 83%, and every easy spec passed. Hard specs did not
+move (40%), and one flange that passed without help failed with it.
+
+The difference from memory is where the knowledge comes from. The learned
+lessons were written by the model about its own mistake, often wrong, and never
+checked. The guide is written once, about the mistakes the logs showed most, and
+every example in it is built and measured by the tests.
+
+**The cost: more rejected tool calls.** 14% of D's attempts were tool calls the
+provider rejected, against 5% without help. The guide adds about 500 tokens to
+the prompt; as with v1's lessons, a longer prompt went with more rejected calls.
+A shorter guide may keep the gain and lose the cost.
 
 **A note on the v2 run.** The run resumes between specs, not within one. While
 the daily token limit was nearly used up, bracket_03 was started 45 times and cut
@@ -200,8 +237,11 @@ finishes, so the restarts did not change the memory.
 
 ## Limits and next ideas
 
-- **One model, one run, 30 specs.** Error bars are wide; the 16-point gaps above
-  are not significant. More runs (`--runs 3`) would show the spread.
+- **One model, one run, 30 specs.** Error bars are wide, and none of the gaps
+  above is significant. The next step is two more runs each of A and D
+  (`--runs 3 --conditions AD`), about four days of the free budget.
+- **Hard specs are where the room is.** D still fails 6 of 10 hard specs. Most
+  are brackets and enclosures with several features on different faces.
 - **Next fix for memory: check a lesson before keeping it.** Shape rules (length,
   ASCII, naming a call) fixed the tool calls but let wrong lessons through. A
   lesson should be kept only if it changes behaviour, for example only if the
