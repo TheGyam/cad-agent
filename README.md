@@ -4,8 +4,8 @@ An LLM agent that writes [CadQuery](https://github.com/CadQuery/cadquery) code
 from a written part spec, and a checker that measures the solid it builds. A
 30-part benchmark compares four ways of helping the model: none, two versions of
 a memory of lessons it writes itself, and a hand-written guide with more precise
-feedback. The guide raised the pass rate from 63% to 77%; the learned memories
-lowered it to 47%.
+feedback. Over three runs the guide raised the pass rate from 59% to 76%
+(p = 0.003); the learned memories lowered it to 47% in one run.
 
 ## The problem: "it runs" is not "it's right"
 
@@ -109,31 +109,40 @@ same shuffled order, at temperature 1.0, seeded per run.
 
 ## Results
 
-One run per condition with `openai/gpt-oss-120b` on Groq, 30 specs each. Every
+Three runs each of A and D, one run each of B and C, with `openai/gpt-oss-120b`
+on Groq, 30 specs per run. Every
 number below comes from [results/openai_gpt-oss-120b/summary.md](results/openai_gpt-oss-120b/summary.md),
 which `bench/analyze.py` builds from the committed logs.
 
 | Metric | A: no memory | B: memory v1 | C: memory v2 | D: guided |
 |---|---|---|---|---|
-| Specs passed within 5 attempts | 63% (19/30) | 47% (14/30) | 47% (14/30) | **77% (23/30)** |
-| Passed on the first attempt | 13% | 7% | 17% | **37%** |
-| First attempt ran but was wrong | 33% | 27% | 27% | 30% |
-| First attempt did not run | 53% | 67% | 57% | 33% |
-| Mean attempts, specs that passed | 2.58 | 3.00 | 2.21 | 2.13 |
-| Attempts rejected as malformed tool calls | 5% | 20% | 10% | 14% |
-| Tokens per spec | 4,069 | 5,276 | 4,828 | 4,472 |
+| Runs | 3 | 1 | 1 | 3 |
+| Specs passed within 5 attempts | 59% ± 8 | 47% | 47% | **76% ± 2** |
+| Specs passed, run by run | 19, 15, 19 | 14 | 14 | **23, 22, 23** |
+| Passed on the first attempt | 13% | 7% | 17% | **39%** |
+| First attempt ran but was wrong | 41% | 27% | 27% | 39% |
+| First attempt did not run | 46% | 67% | 57% | 22% |
+| Mean attempts, specs that passed | 2.45 | 3.00 | 2.21 | 1.91 |
+| Attempts rejected as malformed tool calls | 5% | 20% | 10% | 12% |
+| Tokens per spec | 4,102 | 5,276 | 4,828 | 4,345 |
 
-**Neither version of memory helped.** Paired by spec against the run without
+± is the standard deviation across runs.
+
+**Neither version of memory helped.** Paired by spec against run 0 without
 memory, v1 has 6 specs that passed only without memory and 1 only with it
 (exact McNemar test, p = 0.125); v2 has 7 and 2 (p = 0.180). Neither gap is
 statistically significant on 30 specs, so the honest reading is "no measured
 benefit", not "memory hurts by 16 points". v2's better first-attempt rate (5
 specs against 4) is one spec, which is noise.
 
-**The guided condition did best, but one run cannot prove it.** D passed 23 of
-30 specs and nearly three times as many on the first attempt (11 against 4).
-Paired by spec, 5 specs passed only with D and 1 only without help (p = 0.219):
-promising, not yet significant. Three runs of A and D would settle it.
+**The guided condition is better, and the difference is significant.** Over
+three runs, D passed 76% of specs against 59% without help, and three times as
+many on the first attempt (39% against 13%). Paired by run and spec, 19 passed
+only with D and 4 only without help (exact McNemar test, p = 0.003). D was also
+steadier: 22 to 23 specs per run, against 15 to 19.
+
+After the first run of D, one run looked promising but not significant
+(p = 0.219), so A and D were each run twice more before drawing this conclusion.
 
 ![Pass rate by part family](results/openai_gpt-oss-120b/pass_rate_by_family.png)
 ![Failure categories by condition](results/openai_gpt-oss-120b/failure_categories.png)
@@ -193,10 +202,11 @@ argument in run_and_check". That run measured a bug, so it is
 [archived with a note](results/openai_gpt-oss-120b/archive_B_memory_bug/NOTE.md)
 and not counted above.
 
-**Most frequent remaining failure:** a wrong hole count without memory, with v1
-and in D (2 of D's 7 failures) (4 of the 11 specs that failed without memory, 8 of the 16 with v1). With v2
-it is code that does not run or builds an invalid solid (8 of 16 failed specs,
-against 4 of 11 without memory), which fits lessons that send the model towards
+**Most frequent remaining failure:** a wrong hole count. Over three runs it
+ends 11 of the 37 failed spec-runs without help and 6 of the 22 guided ones. In
+run 0, it ended 8 of v1's 16 failures. With v2 the most common end was code that
+does not run or builds an invalid solid (8 of 16 failed specs, against 4 of 11
+without help in the same run), which fits lessons that send the model towards
 wrong API use.
 
 **The guided condition fixed the failures the logs pointed at.** The specs that
@@ -215,9 +225,12 @@ The passing code uses the advice it was given: bracket_01 places its holes with
 `cq.Solid.makeCylinder` as the guide's example does, and enclosure_03 joins its
 parts with `.union()`.
 
-Runs that crashed fell from 24% of attempts to 13%. Brackets rose from 25% to
-62%, enclosures from 50% to 83%, and every easy spec passed. Hard specs did not
-move (40%), and one flange that passed without help failed with it.
+In the first run, runs that crashed fell from 24% of attempts to 13%. Over all
+three runs, first attempts that did not run fell from 46% to 22%. Brackets rose
+from 21% to 62%, enclosures from 50% to 83%, and medium specs from 58% to 85%.
+Hard specs barely moved (40% to 47%), and flanges fell from 72% to 61%: the
+guide does not cover their main mistakes. Four specs never passed in any guided
+run: bracket_06, bracket_08, flange_05 and plate_09.
 
 The difference from memory is where the knowledge comes from. The learned
 lessons were written by the model about its own mistake, often wrong, and never
@@ -225,7 +238,8 @@ checked. The guide is written once, about the mistakes the logs showed most, and
 every example in it is built and measured by the tests.
 
 **The cost: more rejected tool calls.** 14% of D's attempts were tool calls the
-provider rejected, against 5% without help. The guide adds about 500 tokens to
+provider rejected, against 5% without help (12% over three runs; 14% in the
+first). The guide adds about 500 tokens to
 the prompt; as with v1's lessons, a longer prompt went with more rejected calls.
 A shorter guide may keep the gain and lose the cost.
 
@@ -237,9 +251,12 @@ finishes, so the restarts did not change the memory.
 
 ## Limits and next ideas
 
-- **One model, one run, 30 specs.** Error bars are wide, and none of the gaps
-  above is significant. The next step is two more runs each of A and D
-  (`--runs 3 --conditions AD`), about four days of the free budget.
+- **The guide was written from these same 30 specs.** Its tips come from the
+  failures logged on this benchmark, so D is measured on the parts it was tuned
+  on. The tips are general CadQuery advice, but the fair test is a held-out set:
+  new specs written after the guide and never used to change it.
+- **One model.** Only `openai/gpt-oss-120b` was tested. B and C ran once each, so
+  their gaps to A are not significant.
 - **Hard specs are where the room is.** D still fails 6 of 10 hard specs. Most
   are brackets and enclosures with several features on different faces.
 - **Next fix for memory: check a lesson before keeping it.** Shape rules (length,
