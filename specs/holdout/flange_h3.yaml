@@ -1,0 +1,28 @@
+id: flange_h3
+family: flange
+difficulty: hard
+text: >
+  Hub flange with its axis along Z. A disk 120 mm in diameter and 15 mm thick
+  sits on the XY plane; a round hub 60 mm in diameter rises 25 mm above the top
+  of the disk, giving an overall height of 40 mm. A 30 mm diameter bore runs
+  through the disk and the hub, with a 2 mm by 45 degree chamfer at its top
+  edge. Eight 9 mm bolt holes along Z through the disk, equally spaced on a
+  95 mm diameter bolt circle, the first at 22.5 degrees from +X.
+constraints:
+  bbox: [120, 120, 40]
+  holes:
+    - {d: 30, depth: 38, axis: z, at: [[60, 60]]}
+    - {d: 9, depth: 15, axis: z, circle: {center: [60, 60], r: 47.5, n: 8, start: 22.5}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(60).extrude(15)
+  hub = cq.Workplane("XY").workplane(offset=15).circle(30).extrude(25)
+  bore = cq.Workplane("XY").circle(15).extrude(40)
+  bolts = cq.Workplane("XY").polarArray(47.5, 22.5, 360, 8).circle(4.5).extrude(15)
+  body = disk.union(hub).cut(bore).cut(bolts)
+  result = body.faces(">Z").edges(cq.selectors.RadiusNthSelector(0)).chamfer(2)
+broken:
+  - {expect: hole_depth, replace: ['.chamfer(2)', '.chamfer(0.5)']}
+  - {expect: hole_position, replace: ['polarArray(47.5, 22.5, 360, 8)', 'polarArray(47.5, 0, 360, 8)']}
+  - {expect: wrong_dimension, replace: ['circle(30).extrude(25)', 'circle(30).extrude(20)']}

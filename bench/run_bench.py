@@ -9,6 +9,7 @@ stopped. Run r shuffles the specs with seed r, and every condition uses that ord
     python -m bench.run_bench --runs 1
     python -m bench.run_bench --runs 1 --conditions D
     python -m bench.run_bench --runs 3 --conditions B --specs plate_01 flange_02
+    python -m bench.run_bench --runs 3 --conditions AD --spec-dir specs/holdout --out results/holdout
 """
 
 import argparse
@@ -44,6 +45,7 @@ def main(argv=None) -> int:
     parser.add_argument("--runs", type=int, default=1, help="runs per condition (default 1)")
     parser.add_argument("--conditions", default="AB", help="A = no memory, B = memory v1, C = memory v2, D = guided (default AB)")
     parser.add_argument("--specs", nargs="*", help="only these spec ids")
+    parser.add_argument("--spec-dir", type=Path, default=checker.SPEC_DIR, help="folder of spec files (default specs/)")
     parser.add_argument("--max-attempts", type=int, default=5)
     parser.add_argument("--out", type=Path, help="results folder (default results/<model>)")
     args = parser.parse_args(argv)
@@ -54,7 +56,9 @@ def main(argv=None) -> int:
     if not args.conditions or set(args.conditions) - set("ABCD"):
         parser.error("--conditions takes letters from A, B, C and D")
 
-    specs = checker.load_specs()
+    specs = checker.load_specs(args.spec_dir)
+    if not specs:
+        parser.error(f"no spec files in {args.spec_dir}")
     if args.specs:
         specs = [s for s in specs if s["id"] in args.specs]
     model = LLM().model

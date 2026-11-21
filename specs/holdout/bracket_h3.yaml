@@ -1,0 +1,31 @@
+id: bracket_h3
+family: bracket
+difficulty: hard
+text: >
+  U-bracket made of 5 mm plate, 40 mm wide (Y). The base lies on the XY plane
+  and is 80 mm long in X. Two upright legs rise along +Z from both X ends of the
+  base to an overall height of 40 mm, their outer faces flush with the ends of
+  the base. Two 6 mm holes along Z through the base at X = 30 and 50 mm,
+  Y = 20 mm. One 8 mm hole along X through the minimum-X leg at Y = 20 mm, 15 mm
+  above the bottom face, and one 8 mm hole along X through the maximum-X leg at
+  Y = 20 mm, 30 mm above the bottom face.
+constraints:
+  bbox: [80, 40, 40]
+  thickness_min: 5
+  holes:
+    - {d: 6, depth: 5, axis: z, at: [[30, 20], [50, 20]]}
+    - {d: 8, depth: 5, axis: x, at: [[20, 15], [20, 30]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(80, 40, 5, centered=False)
+  left = cq.Workplane("XY").box(5, 40, 40, centered=False)
+  right = cq.Workplane("XY").box(5, 40, 40, centered=False).translate((75, 0, 0))
+  holes_z = cq.Workplane("XY").pushPoints([(30, 20), (50, 20)]).circle(3).extrude(5)
+  hole_left = cq.Workplane("YZ").center(20, 15).circle(4).extrude(5)
+  hole_right = cq.Workplane("YZ", origin=(75, 0, 0)).center(20, 30).circle(4).extrude(5)
+  result = base.union(left).union(right).cut(holes_z).cut(hole_left).cut(hole_right)
+broken:
+  - {expect: hole_position, replace: ['center(20, 30)', 'center(20, 25)']}
+  - {expect: volume, replace: ['.union(right)', '']}
+  - {expect: hole_count, replace: ['.cut(hole_left)', '']}

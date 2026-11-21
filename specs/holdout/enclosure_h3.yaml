@@ -1,0 +1,27 @@
+id: enclosure_h3
+family: enclosure
+difficulty: hard
+text: >
+  Open-top box, outside 120 mm (X) by 80 mm (Y) by 40 mm high (Z), with the
+  walls and the bottom 2 mm thick. Inside it, four round bosses 8 mm in diameter
+  stand on the floor and reach 15 mm above the bottom face of the box. Their
+  centres are 10 mm from the two nearest outer walls: at X = 10 and 110 mm,
+  Y = 10 and 70 mm. Each boss has a 3 mm diameter blind hole along Z, 10 mm deep
+  from the top of the boss.
+constraints:
+  bbox: [120, 80, 40]
+  thickness_min: 2
+  holes:
+    - {d: 3, depth: 10, axis: z, at: [[10, 10], [110, 10], [10, 70], [110, 70]]}
+reference: |
+  import cadquery as cq
+
+  points = [(10, 10), (110, 10), (10, 70), (110, 70)]
+  box = cq.Workplane("XY").box(120, 80, 40, centered=False).faces(">Z").shell(-2)
+  bosses = cq.Workplane("XY").workplane(offset=2).pushPoints(points).circle(4).extrude(13)
+  holes = cq.Workplane("XY").workplane(offset=5).pushPoints(points).circle(1.5).extrude(10)
+  result = box.union(bosses).cut(holes)
+broken:
+  - {expect: hole_depth, replace: ['workplane(offset=5)', 'workplane(offset=8)']}
+  - {expect: hole_count, replace: ['.cut(holes)', '']}
+  - {expect: volume, replace: ['circle(4).extrude(13)', 'circle(5).extrude(13)']}

@@ -1,0 +1,23 @@
+id: flange_h1
+family: flange
+difficulty: easy
+text: >
+  Round flange with its axis along Z: a disk 80 mm in diameter and 10 mm thick
+  on the XY plane, with a 25 mm diameter bore through its centre and four 6.6 mm
+  bolt holes along Z, equally spaced on a 60 mm diameter bolt circle, one of
+  them on the +X side of the centre.
+constraints:
+  bbox: [80, 80, 10]
+  holes:
+    - {d: 25, depth: 10, axis: z, at: [[40, 40]]}
+    - {d: 6.6, depth: 10, axis: z, circle: {center: [40, 40], r: 30, n: 4, start: 0}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(40).extrude(10)
+  bore = cq.Workplane("XY").circle(12.5).extrude(10)
+  bolts = cq.Workplane("XY").polarArray(30, 0, 360, 4).circle(3.3).extrude(10)
+  result = disk.cut(bore).cut(bolts)
+broken:
+  - {expect: hole_position, replace: ['polarArray(30, 0, 360, 4)', 'polarArray(30, 45, 360, 4)']}
+  - {expect: hole_diameter, replace: ['circle(12.5)', 'circle(12)']}

@@ -59,3 +59,12 @@ def test_paired_test_uses_every_run_the_two_conditions_share():
     tasks = pd.DataFrame(rows, columns=["condition", "run", "spec", "passed"])
     assert analyze.paired_test(tasks, "D")[:2] == (1, 2)
     assert analyze.paired_test(tasks, "B")[:2] == (0, 1)
+
+
+def test_runs_specs_from_another_folder(tmp_path, monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "not-used")
+    monkeypatch.setattr(run_bench, "LLM", FakeLLM)
+    holdout = checker.SPEC_DIR / "holdout"
+    assert run_bench.main(["--spec-dir", str(holdout), "--specs", "plate_h1", "--conditions", "A",
+                           "--max-attempts", "1", "--out", str(tmp_path)]) == 0
+    assert [t["spec"] for t in read_jsonl(tmp_path / "tasks.jsonl")] == ["plate_h1"]

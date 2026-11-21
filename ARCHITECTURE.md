@@ -8,6 +8,8 @@ How the code is organised, and the rules that keep it that way.
 specs/                One YAML file per benchmark part: the text the agent sees,
                       the constraints the checker uses, a reference part and
                       broken copies of it.
+  holdout/            12 more specs, written after condition D's guide and never
+                      used to change it: a fair test of the guide on new parts.
 agent/
   llm.py                The model client (any OpenAI-compatible API) and the
                         run_and_check tool definition

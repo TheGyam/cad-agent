@@ -15,7 +15,8 @@ from agent import checker
 from agent.runner import build_trusted
 
 SPECS = checker.load_specs()
-BROKEN = [(s, b) for s in SPECS for b in s.get("broken", [])]
+HOLDOUT = checker.load_specs(checker.SPEC_DIR / "holdout")  # written after the guide, never used to change it
+BROKEN = [(s, b) for s in SPECS + HOLDOUT for b in s.get("broken", [])]
 
 
 def test_benchmark_has_thirty_specs_in_four_families():
@@ -28,7 +29,16 @@ def test_benchmark_has_thirty_specs_in_four_families():
         assert len(s["broken"]) >= 2, s["id"]
 
 
-@pytest.mark.parametrize("spec", SPECS, ids=lambda s: s["id"])
+def test_holdout_has_one_spec_per_family_and_difficulty():
+    assert len(HOLDOUT) == 12
+    assert {(s["family"], s["difficulty"]) for s in HOLDOUT} == {
+        (f, d) for f in ("plate", "bracket", "flange", "enclosure") for d in ("easy", "medium", "hard")}
+    assert not {s["id"] for s in HOLDOUT} & {s["id"] for s in SPECS}
+    for s in HOLDOUT:
+        assert len(s["broken"]) >= 2, s["id"]
+
+
+@pytest.mark.parametrize("spec", SPECS + HOLDOUT, ids=lambda s: s["id"])
 def test_reference_passes(spec):
     ref = checker.reference_shape(spec)
     assert checker.check(spec, ref, ref) == []

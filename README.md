@@ -253,8 +253,9 @@ finishes, so the restarts did not change the memory.
 
 - **The guide was written from these same 30 specs.** Its tips come from the
   failures logged on this benchmark, so D is measured on the parts it was tuned
-  on. The tips are general CadQuery advice, but the fair test is a held-out set:
-  new specs written after the guide and never used to change it.
+  on. The fair test is [specs/holdout](specs/holdout): 12 new parts (one per
+  family and difficulty) written after the guide, which has not changed since.
+  Results for A and D on them will go in `results/holdout`.
 - **One model.** Only `openai/gpt-oss-120b` was tested. B and C ran once each, so
   their gaps to A are not significant.
 - **Hard specs are where the room is.** D still fails 6 of 10 hard specs. Most

@@ -1,0 +1,21 @@
+id: enclosure_h2
+family: enclosure
+difficulty: medium
+text: >
+  Open-top box, outside 100 mm (X) by 70 mm (Y) by 45 mm high (Z), with the
+  walls and the bottom 3 mm thick. Two 8 mm diameter holes along X go through
+  the minimum-X wall, at Y = 20 and 50 mm, 25 mm above the bottom face.
+constraints:
+  bbox: [100, 70, 45]
+  thickness_min: 3
+  holes:
+    - {d: 8, depth: 3, axis: x, at: [[20, 25], [50, 25]]}
+reference: |
+  import cadquery as cq
+
+  box = cq.Workplane("XY").box(100, 70, 45, centered=False).faces(">Z").shell(-3)
+  holes = cq.Workplane("YZ").pushPoints([(20, 25), (50, 25)]).circle(4).extrude(3)
+  result = box.cut(holes)
+broken:
+  - {expect: hole_count, replace: ['result = box.cut(holes)', 'result = box']}
+  - {expect: hole_position, replace: ['[(20, 25), (50, 25)]', '[(20, 20), (50, 20)]']}

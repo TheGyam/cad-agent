@@ -1,0 +1,24 @@
+id: flange_h2
+family: flange
+difficulty: medium
+text: >
+  Square flange 100 mm by 100 mm (X and Y), 12 mm thick (Z), with its four
+  vertical corner edges rounded to a 10 mm radius. A 50 mm diameter bore along Z
+  through the centre. Four 9 mm bolt holes along Z on a 75 mm diameter bolt
+  circle around the centre, placed on the diagonals (at 45, 135, 225 and 315
+  degrees from +X).
+constraints:
+  bbox: [100, 100, 12]
+  holes:
+    - {d: 50, depth: 12, axis: z, at: [[50, 50]]}
+    - {d: 9, depth: 12, axis: z, circle: {center: [50, 50], r: 37.5, n: 4, start: 45}}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").rect(100, 100).extrude(12).edges("|Z").fillet(10)
+  bore = cq.Workplane("XY").circle(25).extrude(12)
+  bolts = cq.Workplane("XY").polarArray(37.5, 45, 360, 4).circle(4.5).extrude(12)
+  result = plate.cut(bore).cut(bolts)
+broken:
+  - {expect: hole_position, replace: ['polarArray(37.5, 45, 360, 4)', 'polarArray(37.5, 0, 360, 4)']}
+  - {expect: shape_mismatch, replace: ['fillet(10)', 'fillet(4)']}

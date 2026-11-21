@@ -1,0 +1,25 @@
+id: plate_h3
+family: plate
+difficulty: hard
+text: >
+  Plate 100 mm (X) by 60 mm (Y), 12 mm thick (Z). A rectangular pocket 40 mm
+  (X) by 20 mm (Y), 5 mm deep, is cut into the top face at its centre. Two
+  counterbored holes along Z at (20, 30) and (80, 30): a 6.6 mm through hole
+  with an 11 mm diameter counterbore 6.5 mm deep from the top face.
+constraints:
+  bbox: [100, 60, 12]
+  holes:
+    - {d: 6.6, depth: 5.5, axis: z, at: [[20, 30], [80, 30]]}
+    - {d: 11, depth: 6.5, axis: z, at: [[20, 30], [80, 30]]}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").box(100, 60, 12, centered=False)
+  pocket = cq.Workplane("XY").workplane(offset=7).center(50, 30).rect(40, 20).extrude(5)
+  through = cq.Workplane("XY").pushPoints([(20, 30), (80, 30)]).circle(3.3).extrude(12)
+  bores = cq.Workplane("XY").workplane(offset=5.5).pushPoints([(20, 30), (80, 30)]).circle(5.5).extrude(6.5)
+  result = plate.cut(pocket).cut(through).cut(bores)
+broken:
+  - {expect: hole_depth, replace: ['workplane(offset=5.5)', 'workplane(offset=8)']}
+  - {expect: hole_count, replace: ['.cut(bores)', '']}
+  - {expect: volume, replace: ['rect(40, 20).extrude(5)', 'rect(40, 20).extrude(3)']}
