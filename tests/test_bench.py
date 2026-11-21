@@ -48,3 +48,14 @@ def test_runs_resumes_and_analyses(tmp_path, monkeypatch):
     assert m.loc["A", "attempts to pass"] == 1.5
     assert "| Specs passed within 5 attempts | 100% | 100% |" in (tmp_path / "summary.md").read_text()
     assert (tmp_path / "pass_rate_by_family.png").exists() and (tmp_path / "failure_categories.png").exists()
+
+
+def test_paired_test_uses_every_run_the_two_conditions_share():
+    import pandas as pd
+
+    rows = [("A", 0, "s1", False), ("D", 0, "s1", True), ("B", 0, "s1", True),
+            ("A", 1, "s1", False), ("D", 1, "s1", True),  # B has no run 1; the pair must still count
+            ("A", 1, "s2", True), ("D", 1, "s2", False)]
+    tasks = pd.DataFrame(rows, columns=["condition", "run", "spec", "passed"])
+    assert analyze.paired_test(tasks, "D")[:2] == (1, 2)
+    assert analyze.paired_test(tasks, "B")[:2] == (0, 1)

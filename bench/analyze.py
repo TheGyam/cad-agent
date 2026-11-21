@@ -69,7 +69,8 @@ def paired_test(tasks: pd.DataFrame, condition: str, baseline: str = "A") -> tup
     Pairs each spec with itself across conditions (same run), so only specs whose
     outcome differs carry information.
     """
-    passed = tasks.pivot_table(index=["run", "spec"], columns="condition", values="passed").dropna()
+    # Drop only pairs missing from these two conditions: other conditions may have fewer runs.
+    passed = tasks.pivot_table(index=["run", "spec"], columns="condition", values="passed")[[baseline, condition]].dropna()
     only_base = int((passed[baseline].astype(bool) & ~passed[condition].astype(bool)).sum())
     only_cond = int((~passed[baseline].astype(bool) & passed[condition].astype(bool)).sum())
     n, k = only_base + only_cond, min(only_base, only_cond)
@@ -141,8 +142,8 @@ def summary_markdown(m: pd.DataFrame, failures: pd.DataFrame, model: str, tasks:
         return "" if pd.isna(v) else f" ± {100 * v:.0f}"
 
     cols = [c for c in CONDITIONS if c in m.index]
-    lines = [f"Model: `{model}`, {int(m['runs'].max())} run(s) per condition, "
-             f"{int(m['specs per run'].max())} specs per run.", "",
+    runs = ", ".join(f"{CONDITIONS[c]} {int(m.loc[c, 'runs'])}" for c in cols)
+    lines = [f"Model: `{model}`, {int(m['specs per run'].max())} specs per run. Runs: {runs}.", "",
              "| Metric | " + " | ".join(CONDITIONS[c] for c in cols) + " |",
              "|---|" + "---|" * len(cols)]
     rows = [
