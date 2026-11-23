@@ -1,0 +1,24 @@
+id: enclosure_n3
+family: enclosure
+difficulty: hard
+text: >
+  Open-top box, outside 100 mm (X) by 100 mm (Y) by 50 mm high (Z), with its
+  four vertical outside corner edges rounded to an 8 mm radius, and the walls
+  and the bottom 3 mm thick. Four 4 mm diameter holes along Z go through the
+  bottom at X = 20 and 80 mm, Y = 20 and 80 mm.
+constraints:
+  bbox: [100, 100, 50]
+  thickness_min: 3
+  holes:
+    - {d: 4, depth: 3, axis: z, at: [[20, 20], [80, 20], [20, 80], [80, 80]]}
+reference: |
+  import cadquery as cq
+
+  box = (cq.Workplane("XY").box(100, 100, 50, centered=False)
+         .edges("|Z").fillet(8).faces(">Z").shell(-3))
+  holes = cq.Workplane("XY").pushPoints([(20, 20), (80, 20), (20, 80), (80, 80)]).circle(2).extrude(3)
+  result = box.cut(holes)
+broken:
+  - {expect: shape_mismatch, replace: ['.fillet(8)', '.fillet(5)']}
+  - {expect: hole_diameter, replace: ['circle(2)', 'circle(2.5)']}
+  - {expect: volume, replace: ['shell(-3)', 'shell(-4)']}

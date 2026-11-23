@@ -1,0 +1,16 @@
+id: enclosure_n1
+family: enclosure
+difficulty: easy
+text: >
+  Open-top tray, outside 150 mm (X) by 100 mm (Y) by 20 mm high (Z), with the
+  walls and the bottom 3 mm thick.
+constraints:
+  bbox: [150, 100, 20]
+  thickness_min: 3
+reference: |
+  import cadquery as cq
+
+  result = cq.Workplane("XY").box(150, 100, 20, centered=False).faces(">Z").shell(-3)
+broken:
+  - {expect: volume, replace: ['shell(-3)', 'shell(-4)']}
+  - {expect: wrong_dimension, replace: ['box(150, 100, 20', 'box(150, 100, 25']}

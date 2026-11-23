@@ -1,0 +1,19 @@
+id: plate_n1
+family: plate
+difficulty: easy
+text: >
+  Flat bar 120 mm (X) by 40 mm (Y), 8 mm thick (Z), with four 6 mm through
+  holes along Z on its centre line (Y = 20 mm) at X = 15, 45, 75 and 105 mm.
+constraints:
+  bbox: [120, 40, 8]
+  holes:
+    - {d: 6, depth: 8, axis: z, at: [[15, 20], [45, 20], [75, 20], [105, 20]]}
+reference: |
+  import cadquery as cq
+
+  bar = cq.Workplane("XY").box(120, 40, 8, centered=False)
+  holes = cq.Workplane("XY").pushPoints([(15, 20), (45, 20), (75, 20), (105, 20)]).circle(3).extrude(8)
+  result = bar.cut(holes)
+broken:
+  - {expect: hole_count, replace: ['(75, 20), (105, 20)', '(75, 20)']}
+  - {expect: hole_diameter, replace: ['circle(3)', 'circle(2.5)']}

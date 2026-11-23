@@ -1,0 +1,27 @@
+id: flange_n3
+family: flange
+difficulty: hard
+text: >
+  Round flange with its axis along Z: a disk 110 mm in diameter and 14 mm thick
+  on the XY plane, with the outer edge of its top face chamfered 2 mm. At the
+  centre, a 20 mm through hole along Z with a 32 mm diameter counterbore 6 mm
+  deep from the top face. Six 11 mm bolt holes along Z, equally spaced on an
+  85 mm diameter bolt circle, the first at 30 degrees from +X.
+constraints:
+  bbox: [110, 110, 14]
+  holes:
+    - {d: 20, depth: 8, axis: z, at: [[55, 55]]}
+    - {d: 32, depth: 6, axis: z, at: [[55, 55]]}
+    - {d: 11, depth: 14, axis: z, circle: {center: [55, 55], r: 42.5, n: 6, start: 30}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(55).extrude(14).faces(">Z").edges().chamfer(2)
+  bore = cq.Workplane("XY").circle(10).extrude(14)
+  counterbore = cq.Workplane("XY").workplane(offset=8).circle(16).extrude(6)
+  bolts = cq.Workplane("XY").polarArray(42.5, 30, 360, 6).circle(5.5).extrude(14)
+  result = disk.cut(bore).cut(counterbore).cut(bolts)
+broken:
+  - {expect: hole_depth, replace: ['workplane(offset=8)', 'workplane(offset=10)']}
+  - {expect: hole_position, replace: ['polarArray(42.5, 30, 360, 6)', 'polarArray(42.5, 0, 360, 6)']}
+  - {expect: shape_mismatch, replace: ['.chamfer(2)', '']}

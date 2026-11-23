@@ -82,6 +82,24 @@ GUIDE = """CadQuery notes (checked against CadQuery 2.x):
 Examples:
 """ + "\n\n".join(f"# {name}\n{code}" for name, code in GUIDE_EXAMPLES.items())
 
+# Condition E is D with this round-part note and example added. Guide v1 built round
+# flanges as square blocks, because all its examples were boxes. GUIDE stays as it was,
+# so condition D's logged runs can still be reproduced.
+ROUND_EXAMPLES = {
+    "round flange": """\
+import cadquery as cq
+disc = cq.Workplane("XY").circle(40).extrude(10).translate((40, 40, 0))
+result = (disc.faces(">Z").workplane(origin=(40, 40, 0)).hole(20)
+          .faces(">Z").workplane(origin=(40, 40, 0)).polarArray(30, 0, 360, 4).hole(6))""",
+}
+
+ROUND_NOTE = """- Round parts (discs, round flanges, hubs) start from a circle, not a box:
+  .circle(r).extrude(h). Positions are measured from the minimum corner, so a disc of
+  radius r has its centre at (r, r): move it there with .translate((r, r, 0))."""
+
+GUIDE_V2 = GUIDE.replace("\n\nExamples:\n", "\n" + ROUND_NOTE + "\n\nExamples:\n") + "".join(
+    f"\n\n# {name}\n{code}" for name, code in ROUND_EXAMPLES.items())
+
 
 def evaluate(spec: dict, code: str, workdir: Path, reference: cq.Shape | None = None) -> list[dict]:
     """Run the code in the sandbox and check the part. An empty list means it passes."""
@@ -125,17 +143,18 @@ def _code(call) -> str | None:
 
 
 def solve(spec: dict, llm, memory=None, max_attempts: int = 5, log=lambda record: None,
-          guided: bool = False) -> dict:
+          guide: str | None = None) -> dict:
     """Work on one spec until it passes or the attempts run out. Returns the task record.
 
-    guided (condition D): the system prompt carries GUIDE, the feedback carries the
-    checker's hints, and a retry lists the earlier attempts' failures.
+    guide (GUIDE for condition D, GUIDE_V2 for E): the system prompt carries the guide,
+    the feedback carries the checker's hints, and a retry lists the earlier attempts' failures.
     """
+    guided = guide is not None
     lessons = memory.relevant(spec["family"]) if memory else []
     prompt = spec["text"].strip()
     if lessons:
         prompt += "\n\nLessons from earlier parts:\n" + "\n".join(f"- {lesson}" for lesson in lessons)
-    system = SYSTEM + "\n\n" + GUIDE if guided else SYSTEM
+    system = SYSTEM + "\n\n" + guide if guided else SYSTEM
     head = [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
     tail: list[dict] = []
     reference = checker.reference_shape(spec)

@@ -1,5 +1,6 @@
 """Run the benchmark: every spec without memory (A), with memory v1 (B) or v2 (C), or
-guided (D: a CadQuery guide in the prompt, hints in the feedback, attempt history).
+guided (D: a CadQuery guide in the prompt, hints in the feedback, attempt history;
+E: the same with guide v2, which adds round parts).
 
 Every attempt is appended to attempts.jsonl and every finished spec to
 tasks.jsonl in the output folder. Running the same command again skips the specs
@@ -43,7 +44,7 @@ def append_jsonl(path: Path, record: dict) -> None:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--runs", type=int, default=1, help="runs per condition (default 1)")
-    parser.add_argument("--conditions", default="AB", help="A = no memory, B = memory v1, C = memory v2, D = guided (default AB)")
+    parser.add_argument("--conditions", default="AB", help="A = no memory, B = memory v1, C = memory v2, D = guided, E = guided v2 (default AB)")
     parser.add_argument("--specs", nargs="*", help="only these spec ids")
     parser.add_argument("--spec-dir", type=Path, default=checker.SPEC_DIR, help="folder of spec files (default specs/)")
     parser.add_argument("--max-attempts", type=int, default=5)
@@ -53,8 +54,8 @@ def main(argv=None) -> int:
     if not (os.environ.get("CAD_AGENT_API_KEY") or os.environ.get("GROQ_API_KEY")):
         print("Set GROQ_API_KEY (or CAD_AGENT_API_KEY) first. See the README.", file=sys.stderr)
         return 1
-    if not args.conditions or set(args.conditions) - set("ABCD"):
-        parser.error("--conditions takes letters from A, B, C and D")
+    if not args.conditions or set(args.conditions) - set("ABCDE"):
+        parser.error("--conditions takes letters from A, B, C, D and E")
 
     specs = checker.load_specs(args.spec_dir)
     if not specs:
@@ -72,7 +73,7 @@ def main(argv=None) -> int:
         random.Random(run).shuffle(order)
         for condition in args.conditions:
             lessons = out / f"lessons_{condition}_run{run}.json"
-            memory = {"A": None, "B": Memory(lessons), "C": Memory(lessons, strict=True), "D": None}[condition]
+            memory = {"A": None, "B": Memory(lessons), "C": Memory(lessons, strict=True), "D": None, "E": None}[condition]
             for spec in order:
                 if (condition, run, spec["id"]) in done:
                     continue
@@ -82,7 +83,7 @@ def main(argv=None) -> int:
                 try:
                     task = loop.solve(spec, llm, memory, args.max_attempts,
                                       log=lambda a: append_jsonl(out / "attempts.jsonl", {**meta, **a}),
-                                      guided=condition == "D")
+                                      guide={"D": loop.GUIDE, "E": loop.GUIDE_V2}.get(condition))
                 except openai.RateLimitError as e:
                     print(f"\nRate limit reached ({e.message}).\nRun the same command again later to carry on.")
                     return 2

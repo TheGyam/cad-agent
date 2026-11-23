@@ -1,0 +1,24 @@
+id: bracket_n1
+family: bracket
+difficulty: easy
+text: >
+  L-bracket made of 5 mm plate, 50 mm wide (Y). The horizontal leg lies on the
+  XY plane and is 60 mm long in X. The vertical leg rises along +Z from the
+  minimum-X end of the horizontal leg to an overall height of 50 mm, its outer
+  face flush with that end. Two 6 mm holes along Z through the horizontal leg at
+  X = 40 mm, Y = 15 and 35 mm.
+constraints:
+  bbox: [60, 50, 50]
+  thickness_min: 5
+  holes:
+    - {d: 6, depth: 5, axis: z, at: [[40, 15], [40, 35]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(60, 50, 5, centered=False)
+  upright = cq.Workplane("XY").box(5, 50, 50, centered=False)
+  holes = cq.Workplane("XY").pushPoints([(40, 15), (40, 35)]).circle(3).extrude(5)
+  result = base.union(upright).cut(holes)
+broken:
+  - {expect: hole_position, replace: ['[(40, 15), (40, 35)]', '[(30, 15), (30, 35)]']}
+  - {expect: wrong_dimension, replace: ['box(5, 50, 50', 'box(5, 50, 45']}

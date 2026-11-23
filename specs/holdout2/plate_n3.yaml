@@ -1,0 +1,22 @@
+id: plate_n3
+family: plate
+difficulty: hard
+text: >
+  Plate 100 mm (X) by 80 mm (Y), 10 mm thick (Z). A rectangular window 40 mm
+  (X) by 20 mm (Y) goes through the plate at its centre. Four 6 mm blind holes
+  along Z, 6 mm deep from the top face, at X = 15 and 85 mm, Y = 15 and 65 mm.
+constraints:
+  bbox: [100, 80, 10]
+  holes:
+    - {d: 6, depth: 6, axis: z, at: [[15, 15], [85, 15], [15, 65], [85, 65]]}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").box(100, 80, 10, centered=False)
+  window = cq.Workplane("XY").center(50, 40).rect(40, 20).extrude(10)
+  holes = cq.Workplane("XY").workplane(offset=4).pushPoints([(15, 15), (85, 15), (15, 65), (85, 65)]).circle(3).extrude(6)
+  result = plate.cut(window).cut(holes)
+broken:
+  - {expect: hole_depth, replace: ['workplane(offset=4)', 'workplane(offset=6)']}
+  - {expect: volume, replace: ['rect(40, 20)', 'rect(40, 30)']}
+  - {expect: hole_count, replace: ['.cut(holes)', '']}

@@ -1,0 +1,24 @@
+id: enclosure_n2
+family: enclosure
+difficulty: medium
+text: >
+  Open-top box, outside 90 mm (X) by 60 mm (Y) by 40 mm high (Z), with the
+  walls and the bottom 2.5 mm thick. A 12 mm diameter hole along Y goes through
+  the minimum-Y wall at X = 45 mm, 20 mm above the bottom face, and a 6 mm
+  diameter hole along Z goes through the bottom at X = 45 mm, Y = 30 mm.
+constraints:
+  bbox: [90, 60, 40]
+  thickness_min: 2.5
+  holes:
+    - {d: 12, depth: 2.5, axis: y, at: [[45, 20]]}
+    - {d: 6, depth: 2.5, axis: z, at: [[45, 30]]}
+reference: |
+  import cadquery as cq
+
+  box = cq.Workplane("XY").box(90, 60, 40, centered=False).faces(">Z").shell(-2.5)
+  side = cq.Solid.makeCylinder(6, 2.5, cq.Vector(45, 0, 20), cq.Vector(0, 1, 0))
+  bottom = cq.Workplane("XY").center(45, 30).circle(3).extrude(2.5)
+  result = box.cut(side).cut(bottom)
+broken:
+  - {expect: hole_count, replace: ['.cut(bottom)', '']}
+  - {expect: hole_position, replace: ['cq.Vector(45, 0, 20)', 'cq.Vector(45, 0, 25)']}

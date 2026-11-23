@@ -1,0 +1,21 @@
+id: plate_n2
+family: plate
+difficulty: medium
+text: >
+  Plate 80 mm (X) by 60 mm (Y), 8 mm thick (Z), with all four edges of its top
+  face chamfered 1 mm. Six 5 mm through holes along Z in a grid of three columns
+  and two rows: X = 20, 40 and 60 mm, Y = 20 and 40 mm.
+constraints:
+  bbox: [80, 60, 8]
+  holes:
+    - {d: 5, depth: 8, axis: z, at: [[20, 20], [40, 20], [60, 20], [20, 40], [40, 40], [60, 40]]}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").box(80, 60, 8, centered=False).faces(">Z").edges().chamfer(1)
+  points = [(x, y) for x in (20, 40, 60) for y in (20, 40)]
+  holes = cq.Workplane("XY").pushPoints(points).circle(2.5).extrude(8)
+  result = plate.cut(holes)
+broken:
+  - {expect: shape_mismatch, replace: ['.chamfer(1)', '']}
+  - {expect: hole_position, replace: ['for y in (20, 40)', 'for y in (20, 44)']}

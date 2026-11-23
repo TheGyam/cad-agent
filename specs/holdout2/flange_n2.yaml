@@ -1,0 +1,27 @@
+id: flange_n2
+family: flange
+difficulty: medium
+text: >
+  Square flange 90 mm by 90 mm (X and Y), 10 mm thick (Z), with its four
+  vertical corner edges rounded to an 8 mm radius. A round spigot 50 mm in
+  diameter rises 4 mm from the centre of its top face, giving an overall height
+  of 14 mm. A 25 mm diameter bore along Z runs through the flange and the
+  spigot. Four 6.6 mm bolt holes along Z on a 70 mm diameter bolt circle around
+  the centre, placed on the diagonals (at 45, 135, 225 and 315 degrees from +X).
+constraints:
+  bbox: [90, 90, 14]
+  holes:
+    - {d: 25, depth: 14, axis: z, at: [[45, 45]]}
+    - {d: 6.6, depth: 10, axis: z, circle: {center: [45, 45], r: 35, n: 4, start: 45}}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").rect(90, 90).extrude(10).edges("|Z").fillet(8)
+  spigot = cq.Workplane("XY").workplane(offset=10).circle(25).extrude(4)
+  bore = cq.Workplane("XY").circle(12.5).extrude(14)
+  bolts = cq.Workplane("XY").polarArray(35, 45, 360, 4).circle(3.3).extrude(10)
+  result = plate.union(spigot).cut(bore).cut(bolts)
+broken:
+  - {expect: wrong_dimension, replace: ['circle(25).extrude(4)', 'circle(25).extrude(6)']}
+  - {expect: hole_position, replace: ['polarArray(35, 45, 360, 4)', 'polarArray(35, 0, 360, 4)']}
+  - {expect: shape_mismatch, replace: ['fillet(8)', 'fillet(3)']}

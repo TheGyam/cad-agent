@@ -82,7 +82,7 @@ def test_every_guide_example_builds_what_it_claims():
     from agent.runner import build_trusted
 
     holes = {}
-    for name, code in loop.GUIDE_EXAMPLES.items():
+    for name, code in {**loop.GUIDE_EXAMPLES, **loop.ROUND_EXAMPLES}.items():
         shape = build_trusted(code)
         assert len(shape.Solids()) == 1 and shape.isValid(), name
         holes[name] = sorted((round(h["d"], 2), h["axis"], tuple(round(v, 2) for v in h["at"]), round(h["depth"], 2))
@@ -90,14 +90,19 @@ def test_every_guide_example_builds_what_it_claims():
     assert holes["plate with holes"] == [(5.0, "z", (10.0, 10.0), 6.0), (5.0, "z", (70.0, 10.0), 6.0)]
     assert {h[2] for h in holes["bolt circle"]} == {(55.0, 25.0), (40.0, 40.0), (25.0, 25.0), (40.0, 10.0)}
     assert holes["hole along Y"] == [(6.0, "y", (40.0, 15.0), 50.0)]
+    assert holes["round flange"] == [(6.0, "z", (10.0, 40.0), 10.0), (6.0, "z", (40.0, 10.0), 10.0),
+                                     (6.0, "z", (40.0, 70.0), 10.0), (6.0, "z", (70.0, 40.0), 10.0),
+                                     (20.0, "z", (40.0, 40.0), 10.0)]
     assert all(name in loop.GUIDE for name in loop.GUIDE_EXAMPLES)
+    assert all(name in loop.GUIDE_V2 for name in {**loop.GUIDE_EXAMPLES, **loop.ROUND_EXAMPLES})
+    assert "round flange" not in loop.GUIDE and loop.ROUND_NOTE in loop.GUIDE_V2
 
 
 def test_guided_mode_adds_the_guide_hints_and_history():
     no_hole = SPEC["reference"].replace('.faces(">Z").workplane().hole(20)', "")
     model = ScriptedModel([no_hole, no_hole, SPEC["reference"]])
 
-    task = loop.solve(SPEC, model, guided=True)
+    task = loop.solve(SPEC, model, guide=loop.GUIDE)
 
     assert task["passed"] and task["attempts"] == 3
     assert loop.GUIDE in model.requests[0][0]["content"]
