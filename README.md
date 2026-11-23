@@ -5,7 +5,8 @@ from a written part spec, and a checker that measures the solid it builds. A
 30-part benchmark compares four ways of helping the model: none, two versions of
 a memory of lessons it writes itself, and a hand-written guide with more precise
 feedback. Over three runs the guide raised the pass rate from 59% to 76%
-(p = 0.003); the learned memories lowered it to 47% in one run.
+(p = 0.003), and from 47% to 75% on 12 new parts written after the guide
+(p = 0.013). The learned memories lowered it to 47% in one run.
 
 ## The problem: "it runs" is not "it's right"
 
@@ -243,6 +244,38 @@ first). The guide adds about 500 tokens to
 the prompt; as with v1's lessons, a longer prompt went with more rejected calls.
 A shorter guide may keep the gain and lose the cost.
 
+**The gain holds on parts the guide never saw.** The guide was written from
+failures on the 30 benchmark specs, so its score there could be too high. To
+test that, 12 new parts, one per family and difficulty, were written after the
+guide ([specs/holdout](specs/holdout)), and the guide was not changed. Three
+runs each of A and D ([results/holdout](results/holdout/summary.md)):
+
+| Metric | A: no help | D: guided |
+|---|---|---|
+| Specs passed within 5 attempts | 47% ± 10 | **75% ± 0** |
+| Specs passed, run by run (of 12) | 7, 5, 5 | **9, 9, 9** |
+| Passed on the first attempt | 11% | **44%** |
+| First attempt did not run | 42% | 11% |
+| Mean attempts, specs that passed | 2.59 | 1.63 |
+
+Paired by run and spec, 12 passed only with D and 2 only without help (exact
+McNemar test, p = 0.013). The gain on new parts (28 points) is as large as on
+the benchmark (17 points), so the guide was not just tuned to the benchmark.
+Brackets and plates passed in every guided run, medium specs went from 50% to
+100%, and hard specs from 17% to 50%.
+
+**The guide turns round flanges into square blocks.** Flanges are the one family
+where the guide hurts: 72% to 61% on the benchmark, 56% to 33% on the held-out
+parts. The held-out flange_h1, a round disc with a bore and four bolt holes,
+passed in 2 of 3 runs without help and in none with it. Every guided attempt
+built it as a square block (64,000 mm3 is exactly 80 x 80 x 10). The guide says
+to build from the corner with `box(..., centered=False)`, and all four of its
+examples are boxes, so the model applied that to a disc. One attempt even tried
+`extrude(10, centered=False)`, an argument that does not exist. Across both sets,
+about half of the guided flange attempts used `box()`, against about one in six
+without the guide; some flanges are square, so not all of those are wrong. A
+guide is only as good as its coverage: it needs a round-part example.
+
 **A note on the v2 run.** The run resumes between specs, not within one. While
 the daily token limit was nearly used up, bracket_03 was started 45 times and cut
 off each time before it finished. Only the finished attempt is counted: the
@@ -251,11 +284,11 @@ finishes, so the restarts did not change the memory.
 
 ## Limits and next ideas
 
-- **The guide was written from these same 30 specs.** Its tips come from the
-  failures logged on this benchmark, so D is measured on the parts it was tuned
-  on. The fair test is [specs/holdout](specs/holdout): 12 new parts (one per
-  family and difficulty) written after the guide, which has not changed since.
-  Results for A and D on them will go in `results/holdout`.
+- **Twelve held-out parts.** The held-out result rests on 12 parts. It agrees
+  with the main set, but a larger held-out set would pin the size of the gain.
+- **Next fix for the guide: round parts.** Add an example built from
+  `circle(r).extrude(h)`, then measure it on a new held-out set, since this one
+  has now been seen.
 - **One model.** Only `openai/gpt-oss-120b` was tested. B and C ran once each, so
   their gaps to A are not significant.
 - **Hard specs are where the room is.** D still fails 6 of 10 hard specs. Most
