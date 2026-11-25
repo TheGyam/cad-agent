@@ -1,0 +1,23 @@
+id: plate_m2
+family: plate
+difficulty: medium
+text: >
+  Plate 90 mm (X) by 60 mm (Y), 8 mm thick (Z), with its four vertical corner
+  edges rounded to a 10 mm radius. A rectangular pocket 30 mm (X) by 20 mm (Y),
+  3 mm deep, is cut into the top face at its centre. Four 6.6 mm through holes
+  along Z at X = 12 and 78 mm, Y = 12 and 48 mm.
+constraints:
+  bbox: [90, 60, 8]
+  holes:
+    - {d: 6.6, depth: 8, axis: z, at: [[12, 12], [78, 12], [12, 48], [78, 48]]}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").box(90, 60, 8, centered=False).edges("|Z").fillet(10)
+  pocket = cq.Workplane("XY").workplane(offset=5).center(45, 30).rect(30, 20).extrude(3)
+  holes = cq.Workplane("XY").pushPoints([(12, 12), (78, 12), (12, 48), (78, 48)]).circle(3.3).extrude(8)
+  result = plate.cut(pocket).cut(holes)
+broken:
+  - {expect: volume, replace: ['rect(30, 20).extrude(3)', 'rect(30, 20).extrude(1.5)']}
+  - {expect: volume, replace: ['fillet(10)', 'fillet(4)']}
+  - {expect: hole_position, replace: ['(12, 48), (78, 48)', '(12, 44), (78, 44)']}

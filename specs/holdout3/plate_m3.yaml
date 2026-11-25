@@ -1,0 +1,24 @@
+id: plate_m3
+family: plate
+difficulty: hard
+text: >
+  Plate 120 mm (X) by 80 mm (Y), 16 mm thick (Z). A 10 mm hole along X is
+  drilled through the whole length of the plate at Y = 40 mm, 8 mm above the
+  bottom face. Four 8 mm through holes along Z at X = 15 and 105 mm, Y = 15 and
+  65 mm.
+constraints:
+  bbox: [120, 80, 16]
+  holes:
+    - {d: 10, depth: 120, axis: x, at: [[40, 8]]}
+    - {d: 8, depth: 16, axis: z, at: [[15, 15], [105, 15], [15, 65], [105, 65]]}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").box(120, 80, 16, centered=False)
+  passage = cq.Workplane("YZ").center(40, 8).circle(5).extrude(120)
+  holes = cq.Workplane("XY").pushPoints([(15, 15), (105, 15), (15, 65), (105, 65)]).circle(4).extrude(16)
+  result = plate.cut(passage).cut(holes)
+broken:
+  - {expect: hole_count, replace: ['.cut(passage)', '']}
+  - {expect: hole_position, replace: ['center(40, 8)', 'center(40, 6)']}
+  - {expect: hole_depth, replace: ['circle(5).extrude(120)', 'circle(5).extrude(60)']}

@@ -17,7 +17,8 @@ from agent.runner import build_trusted
 SPECS = checker.load_specs()
 HOLDOUT = checker.load_specs(checker.SPEC_DIR / "holdout")  # written after the guide, never used to change it
 HOLDOUT2 = checker.load_specs(checker.SPEC_DIR / "holdout2")  # written after guide v2, to test it
-BROKEN = [(s, b) for s in SPECS + HOLDOUT + HOLDOUT2 for b in s.get("broken", [])]
+HOLDOUT3 = checker.load_specs(checker.SPEC_DIR / "holdout3")  # written after guide v3, to test it
+BROKEN = [(s, b) for s in SPECS + HOLDOUT + HOLDOUT2 + HOLDOUT3 for b in s.get("broken", [])]
 
 
 def test_benchmark_has_thirty_specs_in_four_families():
@@ -30,7 +31,7 @@ def test_benchmark_has_thirty_specs_in_four_families():
         assert len(s["broken"]) >= 2, s["id"]
 
 
-@pytest.mark.parametrize("holdout", [HOLDOUT, HOLDOUT2], ids=["holdout", "holdout2"])
+@pytest.mark.parametrize("holdout", [HOLDOUT, HOLDOUT2, HOLDOUT3], ids=["holdout", "holdout2", "holdout3"])
 def test_holdout_has_one_spec_per_family_and_difficulty(holdout):
     assert len(holdout) == 12
     assert {(s["family"], s["difficulty"]) for s in holdout} == {
@@ -40,7 +41,7 @@ def test_holdout_has_one_spec_per_family_and_difficulty(holdout):
         assert len(s["broken"]) >= 2, s["id"]
 
 
-@pytest.mark.parametrize("spec", SPECS + HOLDOUT + HOLDOUT2, ids=lambda s: s["id"])
+@pytest.mark.parametrize("spec", SPECS + HOLDOUT + HOLDOUT2 + HOLDOUT3, ids=lambda s: s["id"])
 def test_reference_passes(spec):
     ref = checker.reference_shape(spec)
     assert checker.check(spec, ref, ref) == []

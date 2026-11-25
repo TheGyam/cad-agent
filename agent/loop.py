@@ -100,6 +100,32 @@ ROUND_NOTE = """- Round parts (discs, round flanges, hubs) start from a circle, 
 GUIDE_V2 = GUIDE.replace("\n\nExamples:\n", "\n" + ROUND_NOTE + "\n\nExamples:\n") + "".join(
     f"\n\n# {name}\n{code}" for name, code in ROUND_EXAMPLES.items())
 
+# Condition F is E with two more traps that failed every guided run on the second
+# held-out set: "XZ" extrudes towards -Y, and a bottom-face workplane mirrors Y.
+PLANE_EXAMPLES = {
+    "rib drawn on the XZ plane": """\
+import cadquery as cq
+body = (cq.Workplane("XY").box(60, 40, 5, centered=False)
+        .union(cq.Workplane("XY").box(5, 40, 40, centered=False)))
+rib = cq.Workplane("XZ", origin=(0, 23, 0)).polyline([(5, 5), (35, 5), (5, 35)]).close().extrude(6)
+result = body.union(rib)""",
+    "holes in a floor": """\
+import cadquery as cq
+tray = cq.Workplane("XY").box(60, 40, 20, centered=False).faces(">Z").shell(-3)
+holes = cq.Workplane("XY").pushPoints([(10, 10), (50, 30)]).circle(2).extrude(3)
+result = tray.cut(holes)""",
+}
+
+PLANE_NOTE = """- "XY" faces +Z and "YZ" faces +X, but "XZ" faces -Y: .extrude(t) on "XZ" grows
+  towards -Y. For a profile in X and Z that spans Y = y0 to y1, use
+  cq.Workplane("XZ", origin=(0, y1, 0)) and .extrude(y1 - y0).
+- A workplane on a bottom face ("<Z") has its local Y pointing to -Y, so points come
+  out mirrored. For holes in a floor or base, cut cylinders from an "XY" workplane:
+  cq.Workplane("XY").pushPoints(points).circle(r).extrude(t), then body.cut(...)."""
+
+GUIDE_V3 = GUIDE_V2.replace("\n\nExamples:\n", "\n" + PLANE_NOTE + "\n\nExamples:\n") + "".join(
+    f"\n\n# {name}\n{code}" for name, code in PLANE_EXAMPLES.items())
+
 
 def evaluate(spec: dict, code: str, workdir: Path, reference: cq.Shape | None = None) -> list[dict]:
     """Run the code in the sandbox and check the part. An empty list means it passes."""

@@ -1,0 +1,22 @@
+id: plate_m1
+family: plate
+difficulty: easy
+text: >
+  Plate 100 mm (X) by 50 mm (Y), 5 mm thick (Z). Two 10 mm through holes along Z
+  at X = 25 and 75 mm, Y = 25 mm, and a 4 mm through hole along Z between them
+  at X = 50 mm, Y = 25 mm.
+constraints:
+  bbox: [100, 50, 5]
+  holes:
+    - {d: 10, depth: 5, axis: z, at: [[25, 25], [75, 25]]}
+    - {d: 4, depth: 5, axis: z, at: [[50, 25]]}
+reference: |
+  import cadquery as cq
+
+  plate = cq.Workplane("XY").box(100, 50, 5, centered=False)
+  big = cq.Workplane("XY").pushPoints([(25, 25), (75, 25)]).circle(5).extrude(5)
+  small = cq.Workplane("XY").center(50, 25).circle(2).extrude(5)
+  result = plate.cut(big).cut(small)
+broken:
+  - {expect: hole_count, replace: ['.cut(small)', '']}
+  - {expect: hole_diameter, replace: ['circle(5)', 'circle(4)']}

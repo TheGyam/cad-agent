@@ -1,0 +1,33 @@
+id: bracket_m3
+family: bracket
+difficulty: hard
+text: >
+  L-bracket made of 5 mm plate, 50 mm wide (Y). The horizontal leg lies on the
+  XY plane and is 60 mm long in X. The vertical leg rises along +Z from the
+  minimum-X end of the horizontal leg to an overall height of 60 mm, its outer
+  face flush with that end. Two triangular gussets 5 mm thick, flush with the
+  two sides of the bracket (Y = 0 to 5 mm and Y = 45 to 50 mm), fill the inside
+  corner: their right-angle sides run 35 mm along the top of the horizontal leg
+  and 35 mm up the inside face of the vertical leg. Two 6.6 mm holes along Z
+  through the horizontal leg at X = 48 mm, Y = 15 and 35 mm. One 6.6 mm hole
+  along X through the vertical leg at Y = 25 mm, 45 mm above the bottom face.
+constraints:
+  bbox: [60, 50, 60]
+  thickness_min: 5
+  holes:
+    - {d: 6.6, depth: 5, axis: z, at: [[48, 15], [48, 35]]}
+    - {d: 6.6, depth: 5, axis: x, at: [[25, 45]]}
+reference: |
+  import cadquery as cq
+
+  base = cq.Workplane("XY").box(60, 50, 5, centered=False)
+  upright = cq.Workplane("XY").box(5, 50, 60, centered=False)
+  gusset = cq.Workplane("XZ").polyline([(5, 5), (40, 5), (5, 40)]).close().extrude(-5)
+  holes_z = cq.Workplane("XY").pushPoints([(48, 15), (48, 35)]).circle(3.3).extrude(5)
+  hole_x = cq.Workplane("YZ").center(25, 45).circle(3.3).extrude(5)
+  body = base.union(upright).union(gusset).union(gusset.translate((0, 45, 0)))
+  result = body.cut(holes_z).cut(hole_x)
+broken:
+  - {expect: volume, replace: ['.union(gusset.translate((0, 45, 0)))', '']}
+  - {expect: shape_mismatch, replace: ['gusset.translate((0, 45, 0))', 'gusset.translate((0, 40, 0))']}
+  - {expect: hole_count, replace: ['.cut(hole_x)', '']}

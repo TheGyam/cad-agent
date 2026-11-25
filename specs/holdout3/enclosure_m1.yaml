@@ -1,0 +1,16 @@
+id: enclosure_m1
+family: enclosure
+difficulty: easy
+text: >
+  Open-top box, outside 60 mm (X) by 40 mm (Y) by 25 mm high (Z), with the walls
+  and the bottom 2 mm thick.
+constraints:
+  bbox: [60, 40, 25]
+  thickness_min: 2
+reference: |
+  import cadquery as cq
+
+  result = cq.Workplane("XY").box(60, 40, 25, centered=False).faces(">Z").shell(-2)
+broken:
+  - {expect: volume, replace: ['shell(-2)', 'shell(-3)']}
+  - {expect: wrong_dimension, replace: ['box(60, 40, 25', 'box(60, 40, 30']}

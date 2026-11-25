@@ -1,0 +1,28 @@
+id: flange_m3
+family: flange
+difficulty: hard
+text: >
+  Round flange with its axis along Z: a disk 120 mm in diameter and 16 mm thick
+  on the XY plane, with a raised face 80 mm in diameter rising 2 mm from the
+  centre of its top face (overall height 18 mm). A 50 mm diameter bore along Z
+  runs through it, with a 1.5 mm by 45 degree chamfer at its top edge. Eight
+  13 mm bolt holes along Z through the disk, equally spaced on a 100 mm diameter
+  bolt circle, the first at 22.5 degrees from +X.
+constraints:
+  bbox: [120, 120, 18]
+  holes:
+    - {d: 50, depth: 16.5, axis: z, at: [[60, 60]]}
+    - {d: 13, depth: 16, axis: z, circle: {center: [60, 60], r: 50, n: 8, start: 22.5}}
+reference: |
+  import cadquery as cq
+
+  disk = cq.Workplane("XY").circle(60).extrude(16)
+  face = cq.Workplane("XY").workplane(offset=16).circle(40).extrude(2)
+  bore = cq.Workplane("XY").circle(25).extrude(18)
+  bolts = cq.Workplane("XY").polarArray(50, 22.5, 360, 8).circle(6.5).extrude(16)
+  body = disk.union(face).cut(bore).cut(bolts)
+  result = body.faces(">Z").edges(cq.selectors.RadiusNthSelector(0)).chamfer(1.5)
+broken:
+  - {expect: hole_depth, replace: ['.chamfer(1.5)', '.chamfer(0.5)']}
+  - {expect: hole_position, replace: ['polarArray(50, 22.5, 360, 8)', 'polarArray(50, 0, 360, 8)']}
+  - {expect: wrong_dimension, replace: ['circle(40).extrude(2)', 'circle(40).extrude(4)']}

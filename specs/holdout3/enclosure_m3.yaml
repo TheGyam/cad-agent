@@ -1,0 +1,25 @@
+id: enclosure_m3
+family: enclosure
+difficulty: hard
+text: >
+  Open-top box, outside 100 mm (X) by 60 mm (Y) by 40 mm high (Z), with the
+  walls and the bottom 2.5 mm thick. Inside, a divider wall 2.5 mm thick and the
+  full height of the box runs across it in Y, centred at X = 50 mm, splitting it
+  into two compartments. Two 6 mm diameter holes along Y go through the
+  minimum-Y wall at X = 25 and 75 mm, 20 mm above the bottom face.
+constraints:
+  bbox: [100, 60, 40]
+  thickness_min: 2.5
+  holes:
+    - {d: 6, depth: 2.5, axis: y, at: [[25, 20], [75, 20]]}
+reference: |
+  import cadquery as cq
+
+  box = cq.Workplane("XY").box(100, 60, 40, centered=False).faces(">Z").shell(-2.5)
+  divider = cq.Workplane("XY").box(2.5, 60, 40, centered=False).translate((48.75, 0, 0))
+  holes = (cq.Workplane("XZ", origin=(0, 2.5, 0)).pushPoints([(25, 20), (75, 20)])
+           .circle(3).extrude(2.5))
+  result = box.union(divider).cut(holes)
+broken:
+  - {expect: volume, replace: ['.union(divider)', '']}
+  - {expect: hole_position, replace: ['[(25, 20), (75, 20)]', '[(25, 25), (75, 25)]']}

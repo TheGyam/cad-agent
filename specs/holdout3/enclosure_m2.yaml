@@ -1,0 +1,21 @@
+id: enclosure_m2
+family: enclosure
+difficulty: medium
+text: >
+  Open-top box, outside 120 mm (X) by 80 mm (Y) by 50 mm high (Z), with the
+  walls and the bottom 3 mm thick. Four 5 mm diameter holes along Z go through
+  the bottom at X = 15 and 105 mm, Y = 15 and 65 mm.
+constraints:
+  bbox: [120, 80, 50]
+  thickness_min: 3
+  holes:
+    - {d: 5, depth: 3, axis: z, at: [[15, 15], [105, 15], [15, 65], [105, 65]]}
+reference: |
+  import cadquery as cq
+
+  box = cq.Workplane("XY").box(120, 80, 50, centered=False).faces(">Z").shell(-3)
+  holes = cq.Workplane("XY").pushPoints([(15, 15), (105, 15), (15, 65), (105, 65)]).circle(2.5).extrude(3)
+  result = box.cut(holes)
+broken:
+  - {expect: hole_count, replace: ['result = box.cut(holes)', 'result = box']}
+  - {expect: hole_position, replace: ['(15, 65), (105, 65)', '(15, 60), (105, 60)']}

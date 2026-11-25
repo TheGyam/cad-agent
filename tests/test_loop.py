@@ -82,9 +82,11 @@ def test_every_guide_example_builds_what_it_claims():
     from agent.runner import build_trusted
 
     holes = {}
-    for name, code in {**loop.GUIDE_EXAMPLES, **loop.ROUND_EXAMPLES}.items():
+    volumes = {}
+    for name, code in {**loop.GUIDE_EXAMPLES, **loop.ROUND_EXAMPLES, **loop.PLANE_EXAMPLES}.items():
         shape = build_trusted(code)
         assert len(shape.Solids()) == 1 and shape.isValid(), name
+        volumes[name] = round(shape.Volume())
         holes[name] = sorted((round(h["d"], 2), h["axis"], tuple(round(v, 2) for v in h["at"]), round(h["depth"], 2))
                              for h in checker.find_holes(shape))
     assert holes["plate with holes"] == [(5.0, "z", (10.0, 10.0), 6.0), (5.0, "z", (70.0, 10.0), 6.0)]
@@ -96,6 +98,12 @@ def test_every_guide_example_builds_what_it_claims():
     assert all(name in loop.GUIDE for name in loop.GUIDE_EXAMPLES)
     assert all(name in loop.GUIDE_V2 for name in {**loop.GUIDE_EXAMPLES, **loop.ROUND_EXAMPLES})
     assert "round flange" not in loop.GUIDE and loop.ROUND_NOTE in loop.GUIDE_V2
+    # the rib spans Y = 17 to 23: 12,000 + 8,000 - 1,000 overlap + a 30 x 30 / 2 x 6 rib
+    assert volumes["rib drawn on the XZ plane"] == 21700
+    assert holes["holes in a floor"] == [(4.0, "z", (10.0, 10.0), 3.0), (4.0, "z", (50.0, 30.0), 3.0)]
+    assert all(name in loop.GUIDE_V3 for name in {**loop.GUIDE_EXAMPLES, **loop.ROUND_EXAMPLES, **loop.PLANE_EXAMPLES})
+    assert loop.ROUND_NOTE in loop.GUIDE_V3 and loop.PLANE_NOTE in loop.GUIDE_V3
+    assert "XZ plane" not in loop.GUIDE_V2
 
 
 def test_guided_mode_adds_the_guide_hints_and_history():

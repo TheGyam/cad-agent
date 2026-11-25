@@ -11,6 +11,7 @@ specs/                One YAML file per benchmark part: the text the agent sees,
   holdout/            12 more specs, written after condition D's guide and never
                       used to change it: a fair test of the guide on new parts.
   holdout2/           12 more, written after guide v2 (condition E), to test it.
+  holdout3/           12 more, written after guide v3 (condition F), to test it.
 agent/
   llm.py                The model client (any OpenAI-compatible API) and the
                         run_and_check tool definition
@@ -19,11 +20,12 @@ agent/
   checker.py            Loads specs and measures a part against one
   loop.py               Generate, run, check, feed back, up to 5 attempts; the
                         CadQuery guide that condition D adds to the prompt, and
-                        guide v2 (the same plus round parts) for condition E
+                        guide v2 (the same plus round parts) for condition E,
+                        and guide v3 (plus workplane directions) for F
   memory.py             Lessons: asked for, filtered, stored, put in the prompt
                         (v1 for condition B, the stricter v2 for C)
 bench/
-  run_bench.py          Runs all specs in each condition (A-E), logs to JSONL, resumes
+  run_bench.py          Runs all specs in each condition (A-F), logs to JSONL, resumes
   analyze.py            Turns a results folder into summary.md and plots
 tests/                pytest. The checker tests run every spec's parts.
 results/<model>/      Benchmark logs, lessons, summary and plots, kept in git.
@@ -89,7 +91,9 @@ file, a list of `{category, message}` violations, a task record.
   to the feedback, and a one-line-per-attempt history to each retry. Every example in
   the guide is built and measured in `tests/test_loop.py`. Hints never change a
   violation's category, and conditions A-C never see them. Condition E is the same
-  with guide v2, which adds a note and an example for round parts. Guide v1 stays
-  unchanged so D's logged runs can be reproduced.
+  with guide v2, which adds a note and an example for round parts, and F with guide
+  v3, which adds which way the named planes face and how to place floor holes. Each
+  version only adds to the last, and none is changed afterwards, so every logged
+  run can be reproduced.
 - **Lessons cannot carry answers.** A lesson that repeats any number from the spec
   text (other than 0 and 1) is refused, and so is one nearly the same as a kept one.

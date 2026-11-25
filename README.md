@@ -306,8 +306,9 @@ much 12 parts can move from one set to another.
 Two parts failed in every condition, and both point at the next fixes. In the
 hard bracket the model draws the gusset on an "XZ" workplane and extrudes it the
 wrong way: that plane's normal is −Y, so the gusset lands 6 mm off in Y. In the
-hard enclosure it drills the floor holes from the bottom face, so `.hole()`
-goes outwards and cuts nothing. It also cuts the cavity as a sharp-cornered box,
+hard enclosure it drills the floor holes from a workplane on the bottom face.
+That workplane's local Y points to −Y, so the holes land outside the part and
+cut nothing. It also cuts the cavity as a sharp-cornered box,
 so the rounded corners' walls are thicker than 3 mm and the volume is 1% low.
 
 **A note on the v2 run.** The run resumes between specs, not within one. While
