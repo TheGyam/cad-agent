@@ -2,11 +2,13 @@
 
 An LLM agent that writes [CadQuery](https://github.com/CadQuery/cadquery) code
 from a written part spec, and a checker that measures the solid it builds. A
-30-part benchmark compares four ways of helping the model: none, two versions of
-a memory of lessons it writes itself, and a hand-written guide with more precise
+30-part benchmark compares ways of helping the model: none, two versions of a
+memory of lessons it writes itself, and a hand-written guide with more precise
 feedback. Over three runs the guide raised the pass rate from 59% to 76%
 (p = 0.003), and from 47% to 75% on 12 new parts written after the guide
-(p = 0.013). The learned memories lowered it to 47% in one run.
+(p = 0.013). A second version of the guide, which fixed its blind spot for round
+parts, passed 81% of another 12 new parts against 53% without help (p = 0.006).
+The learned memories lowered the pass rate to 47% in one run.
 
 ## The problem: "it runs" is not "it's right"
 
@@ -276,6 +278,38 @@ about half of the guided flange attempts used `box()`, against about one in six
 without the guide; some flanges are square, so not all of those are wrong. A
 guide is only as good as its coverage: it needs a round-part example.
 
+**Guide v2 fixes round parts, measured on a second set of new parts.** Guide v2
+(condition E) adds one note, that round parts start from `circle(r).extrude(h)`,
+and one tested example, a round flange. Guide v1 is kept unchanged, so D can
+still be reproduced. Because the first held-out set had now been seen, 12 more
+parts were written after guide v2 ([specs/holdout2](specs/holdout2)), and A, D
+and E ran three times each on them ([results/holdout2](results/holdout2/summary.md)):
+
+| Metric | A: no help | D: guide v1 | E: guide v2 |
+|---|---|---|---|
+| Specs passed within 5 attempts | 53% ± 13 | 67% ± 8 | **81% ± 5** |
+| Specs passed, run by run (of 12) | 6, 5, 8 | 8, 9, 7 | **10, 10, 9** |
+| Flanges passed (of 9) | 7 | 4 | **8** |
+| Passed on the first attempt | 17% | 36% | **44%** |
+| First attempt did not run | 50% | 19% | 19% |
+
+The flange fix worked. On the two round flanges, guide v1 passed 1 of 6
+spec-runs and built a box or rectangle in 12 of its 23 attempts; guide v2 passed
+6 of 6 and used one once in 14 attempts. The square flange with a round spigot
+did not suffer (3 of 3 with v1, 2 of 3 with v2). Against no help, E passed 11
+spec-runs that A failed and failed 1 that A passed (exact McNemar test,
+p = 0.006). Against guide v1, E won 6 and lost 1 (p = 0.125): a clear direction,
+but too few parts to call it significant on its own. Guide v1's gain on this set
+(53% to 67%, p = 0.267) is smaller than on the first held-out set, which shows how
+much 12 parts can move from one set to another.
+
+Two parts failed in every condition, and both point at the next fixes. In the
+hard bracket the model draws the gusset on an "XZ" workplane and extrudes it the
+wrong way: that plane's normal is −Y, so the gusset lands 6 mm off in Y. In the
+hard enclosure it drills the floor holes from the bottom face, so `.hole()`
+goes outwards and cuts nothing. It also cuts the cavity as a sharp-cornered box,
+so the rounded corners' walls are thicker than 3 mm and the volume is 1% low.
+
 **A note on the v2 run.** The run resumes between specs, not within one. While
 the daily token limit was nearly used up, bracket_03 was started 45 times and cut
 off each time before it finished. Only the finished attempt is counted: the
@@ -284,11 +318,12 @@ finishes, so the restarts did not change the memory.
 
 ## Limits and next ideas
 
-- **Twelve held-out parts.** The held-out result rests on 12 parts. It agrees
-  with the main set, but a larger held-out set would pin the size of the gain.
-- **Next fix for the guide: round parts.** Add an example built from
-  `circle(r).extrude(h)`, then measure it on a new held-out set, since this one
-  has now been seen.
+- **Twelve parts per held-out set.** Each held-out result rests on 12 parts,
+  and guide v1 scored 75% on one set and 67% on the other. A larger held-out set
+  would pin the size of the gain, and of v2's gain over v1.
+- **Next fixes for the guide: side workplanes and drilling direction.** Note that
+  the "XZ" plane's normal is −Y, and that a hole on the bottom face must be
+  drilled from the top or cut as a cylinder. Then measure on parts not yet seen.
 - **One model.** Only `openai/gpt-oss-120b` was tested. B and C ran once each, so
   their gaps to A are not significant.
 - **Hard specs are where the room is.** D still fails 6 of 10 hard specs. Most
