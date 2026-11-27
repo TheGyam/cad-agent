@@ -7,8 +7,10 @@ memory of lessons it writes itself, and a hand-written guide with more precise
 feedback. Over three runs the guide raised the pass rate from 59% to 76%
 (p = 0.003), and from 47% to 75% on 12 new parts written after the guide
 (p = 0.013). A second version of the guide, which fixed its blind spot for round
-parts, passed 81% of another 12 new parts against 53% without help (p = 0.006).
-The learned memories lowered the pass rate to 47% in one run.
+parts, passed 81% of another 12 new parts against 53% without help (p = 0.006),
+and 75% of a third set against 39% (p = 0.002). A third version, with two more
+notes, did not help: the model ignored them. The learned memories lowered the
+pass rate to 47% in one run.
 
 ## The problem: "it runs" is not "it's right"
 
@@ -308,7 +310,33 @@ hard bracket the model draws the gusset on an "XZ" workplane and extrudes it the
 wrong way: that plane's normal is −Y, so the gusset lands 6 mm off in Y. In the
 hard enclosure it drills the floor holes from a workplane on the bottom face.
 That workplane's local Y points to −Y, so the holes land outside the part and
-cut nothing. It also cuts the cavity as a sharp-cornered box,
+cut nothing.
+
+**Guide v3 added two notes, and the model ignored them.** Guide v3 (condition F)
+adds which way each named plane faces ("XZ" faces −Y, with a tested rib example)
+and says to cut floor holes as cylinders from an "XY" workplane, with a tested
+example. A third set of 12 new parts was written after it
+([specs/holdout3](specs/holdout3)), and A, E and F ran three times each
+([results/holdout3](results/holdout3/summary.md)):
+
+| Metric | A: no help | E: guide v2 | F: guide v3 |
+|---|---|---|---|
+| Specs passed within 5 attempts | 39% ± 5 | **75% ± 8** | 69% ± 5 |
+| Specs passed, run by run (of 12) | 5, 4, 5 | **10, 8, 9** | 8, 9, 8 |
+| Passed on the first attempt | 11% | **36%** | 31% |
+| Tokens per spec | 4,363 | **4,347** | 6,396 |
+
+Guide v2 held up on a third set of new parts: 15 spec-runs passed only with it
+and 2 only without help (p = 0.002). Guide v3 was no better than v2 (it won 2 and
+lost 4, p = 0.69) and cost about a third more tokens per attempt, for a longer
+prompt. The logs show why. A workplane on the bottom face was used in 9 guide v3
+attempts, against 12 with v2, and none of them passed; across all three
+conditions, the 32 attempts that drilled from the bottom face all failed. Of the
+5 guide v3 attempts that drew on the "XZ" plane, none placed it the way the
+guide's example does, and the gussets landed on the wrong side of Y as before.
+More text in the prompt stopped changing behaviour here. A habit this strong
+probably needs feedback aimed at it, from the checker, at the attempt where it
+happens. It also cuts the cavity as a sharp-cornered box,
 so the rounded corners' walls are thicker than 3 mm and the volume is 1% low.
 
 **A note on the v2 run.** The run resumes between specs, not within one. While
@@ -322,9 +350,11 @@ finishes, so the restarts did not change the memory.
 - **Twelve parts per held-out set.** Each held-out result rests on 12 parts,
   and guide v1 scored 75% on one set and 67% on the other. A larger held-out set
   would pin the size of the gain, and of v2's gain over v1.
-- **Next fixes for the guide: side workplanes and drilling direction.** Note that
-  the "XZ" plane's normal is −Y, and that a hole on the bottom face must be
-  drilled from the top or cut as a cylinder. Then measure on parts not yet seen.
+- **Next fix: hints that name the habit.** Guide notes about the "XZ" plane and
+  bottom-face workplanes were ignored (guide v3). A checker hint could say it at
+  the moment it happens: when no holes are found and the code drills from a
+  bottom-face workplane, or when the part sits one extrusion off in Y and the
+  code draws on "XZ". Measure it on parts not yet seen.
 - **One model.** Only `openai/gpt-oss-120b` was tested. B and C ran once each, so
   their gaps to A are not significant.
 - **Hard specs are where the room is.** D still fails 6 of 10 hard specs. Most
